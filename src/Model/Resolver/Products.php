@@ -5,6 +5,7 @@ namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
 
 use G4NReact\MsCatalog\Document;
 use G4NReact\MsCatalog\Query;
+use G4NReact\MsCatalogMagento2\Helper\MsCatalog as MsCatalogHelper;
 use G4NReact\MsCatalogSolr\Response;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Parser;
 use Global4net\CatalogGraphQl\Model\Resolver\DataProvider\Attribute;
@@ -72,6 +73,11 @@ class Products implements ResolverInterface
     private $logger;
 
     /**
+     * @var MsCatalogHelper
+     */
+    protected $msCatalogMagento2Helper;
+
+    /**
      * @var array
      */
     public static $idTypeMapping = [
@@ -118,11 +124,10 @@ class Products implements ResolverInterface
      * @param CacheInterface $cache
      * @param DeploymentConfig $deploymentConfig
      * @param StoreManagerInterface $storeManager
-     * @param Store $magentoOneHelper
-     * @param MagentoOneConnection $magentoOneConnection
      * @param Attribute $attributesDefinition
      * @param Json $serializer
      * @param LoggerInterface $logger
+     * @param MsCatalogHelper $msCatalogMagento2Helper
      */
     public function __construct(
         CacheInterface $cache,
@@ -130,7 +135,8 @@ class Products implements ResolverInterface
         StoreManagerInterface $storeManager,
         Attribute $attributesDefinition,
         Json $serializer,
-        LoggerInterface $logger
+        LoggerInterface $logger,
+        MsCatalogHelper $msCatalogMagento2Helper
     ) {
         $this->cache = $cache;
         $this->deploymentConfig = $deploymentConfig;
@@ -138,6 +144,7 @@ class Products implements ResolverInterface
         $this->attributesDefinition = $attributesDefinition;
         $this->serializer = $serializer;
         $this->logger = $logger;
+        $this->msCatalogMagento2Helper = $msCatalogMagento2Helper;
     }
 
     /**
@@ -233,11 +240,17 @@ class Products implements ResolverInterface
      * @param $searchFields
      * @param $additional
      * @return array
+     * @throws NoSuchEntityException
      */
     public function getDataFromSolr($options, $searchFields, $additional)
     {
-        $config = $this->deploymentConfig->getConfigData('old_solr');
+        $config = $this->msCatalogMagento2Helper
+            ->getConfiguration(
+                $this->msCatalogMagento2Helper->getSearchEngineConfiguration(),
+                $this->msCatalogMagento2Helper->getEcommerceEngineConfiguration()
+            );
 
+        // @ToDo: Temporarily solution - change this ASAP
         $msCatalog = new Query('solr', $config, $options);
         $msCatalog->setSort($this->getSortParam($options['sort']));
         $msCatalog->setSearchFields($searchFields);
