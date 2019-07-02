@@ -6,10 +6,8 @@ namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
 use G4NReact\MsCatalog\Document;
 use G4NReact\MsCatalog\Query;
 use G4NReact\MsCatalogMagento2\Helper\MsCatalog as MsCatalogHelper;
-use G4NReact\MsCatalogSolr\Response;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Parser;
-use Global4net\CatalogGraphQl\Model\Resolver\DataProvider\Attribute;
-use Magento\Catalog\Model\Layer\Resolver;
+use G4NReact\MsCatalogSolr\Response;
 use Magento\Framework\App\CacheInterface;
 use Magento\Framework\App\DeploymentConfig;
 use Magento\Framework\Exception\NoSuchEntityException;
@@ -58,11 +56,6 @@ class Products implements ResolverInterface
     private $storeManager;
 
     /**
-     * @var Attribute
-     */
-    private $attributesDefinition;
-
-    /**
      * @var Json
      */
     protected $serializer;
@@ -94,7 +87,8 @@ class Products implements ResolverInterface
         'id'                => 'object_id',
         'price'             => 'price_f',
         'max_sale_qty'      => 'max_sale_qty_i',
-        'min_sale_qty'      => 'min_sale_qty_i'
+        'min_sale_qty'      => 'min_sale_qty_i',
+        'store_id'          => 'store_id_s_ni',
     ];
 
     /**
@@ -120,11 +114,11 @@ class Products implements ResolverInterface
     public $resolveInfo;
 
     /**
-     * Products constructor.
+     * Products constructor
+     *
      * @param CacheInterface $cache
      * @param DeploymentConfig $deploymentConfig
      * @param StoreManagerInterface $storeManager
-     * @param Attribute $attributesDefinition
      * @param Json $serializer
      * @param LoggerInterface $logger
      * @param MsCatalogHelper $msCatalogMagento2Helper
@@ -133,7 +127,6 @@ class Products implements ResolverInterface
         CacheInterface $cache,
         DeploymentConfig $deploymentConfig,
         StoreManagerInterface $storeManager,
-        Attribute $attributesDefinition,
         Json $serializer,
         LoggerInterface $logger,
         MsCatalogHelper $msCatalogMagento2Helper
@@ -141,7 +134,6 @@ class Products implements ResolverInterface
         $this->cache = $cache;
         $this->deploymentConfig = $deploymentConfig;
         $this->storeManager = $storeManager;
-        $this->attributesDefinition = $attributesDefinition;
         $this->serializer = $serializer;
         $this->logger = $logger;
         $this->msCatalogMagento2Helper = $msCatalogMagento2Helper;
@@ -228,7 +220,7 @@ class Products implements ResolverInterface
 //        }
 
         $args['filter_query'] = [
-            'store_id'     => $storeId,
+            self::$attributeMapping['store_id'] => $storeId,
             'object_type' => 'product'
         ];
 
@@ -356,9 +348,9 @@ class Products implements ResolverInterface
             }
             $codeAndValue = explode('=', $param);
             $attributeCode = $codeAndValue[0];
-            if (isset($codeAndValue[1]) && ($codeAndValue[1] || in_array($attributeCode, self::$attributeFlagsMapping))) {
+            if (isset($codeAndValue[1]) && ($codeAndValue[1])) {
                 $attributeValue = $codeAndValue[1];
-                if (in_array($attributeCode, self::$attributeMapping) || in_array($attributeCode, self::$attributeFlagsMapping)) {
+                if (in_array($attributeCode, self::$attributeMapping)) {
                     $resultParams[] = $param;
                     continue;
                 }
@@ -513,16 +505,22 @@ class Products implements ResolverInterface
 
             $url = parse_url($document->getFieldValue('url') ?: '');
             $productData = [
-                'id'                               => $this->parseToString($document->getFieldValue('object_id')),
-                'sku'                              => $this->parseToString($document->getFieldValue('sku')),
-                'name'                             => $this->parseToString($document->getFieldValue('name')),
-                'description'                      => $this->parseToString($document->getFieldValue('description')),
-//                'price'                            => $this->parseToString($document->getFieldValue('original_price')),
-                'final_price'                      => $this->parseToString($document->getFieldValue('price')),
+                'id'            => $this->parseToString($document->getFieldValue('object_id')),
+                'sku'           => $this->parseToString($document->getFieldValue('sku')),
+                'name'          => $this->parseToString($document->getFieldValue('name')),
+                'description'   => $this->parseToString($document->getFieldValue('description')),
+                'price'         => $this->parseToString($document->getFieldValue('price')),
+                'special_price' => $this->parseToString($document->getFieldValue('special_price')),
 //                'has_special_price'                => $this->parseToString($document->getFieldValue('has_special_price')),
-                'type_id'                          => $this->parseToString($document->getFieldValue('type_id')),
-                'url'                              => $url['path'] ?? '',
-                'object_type'                      => self::PRODUCT_OBJECT_TYPE,
+                'type_id'       => $this->parseToString($document->getFieldValue('type_id')),
+                'url'           => $url['path'] ?? '',
+                'url_key'       => $this->parseToString($document->getFieldValue('url_key')),
+                'thumbnail'     => $this->parseToString($document->getFieldValue('thumbnail')),
+                'small_image'   => $this->parseToString($document->getFieldValue('small_image')),
+                'image'         => $this->parseToString($document->getFieldValue('image')),
+                'swatch_image'  => $this->parseToString($document->getFieldValue('swatch_image')),
+                'media_gallery' => $this->parseToString($document->getFieldValue('media_gallery')),
+                'object_type'   => self::PRODUCT_OBJECT_TYPE,
             ];
 
             $products[$i] = $productData;
@@ -544,4 +542,12 @@ class Products implements ResolverInterface
         return is_array($field) ? implode(', ', $field) : $field;
     }
 
+    /**
+     * @param $attributeCode
+     * @return bool|string
+     */
+    public function getSolrAttributeCode($attributeCode)
+    {
+        return $attributeCode . '_facet';
+    }
 }

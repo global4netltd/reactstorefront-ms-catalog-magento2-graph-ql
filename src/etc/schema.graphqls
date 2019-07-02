@@ -1,12 +1,6 @@
 #Solr Category and Products with facets data GraphQl Schema
 
 type Query {
-    msCategories (
-        ids: [Int] @doc(description: "Arrays of Ids of the categories")
-        level: [Int] @doc(description: "Level of the category")
-        children: Boolean @doc(description: "Children of the category")
-    ): MsCategories @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Category")
-
     msProducts (
         search: String @doc(description: "Performs a full-text search using the specified key words."),
         filter: MsProductFilterInput @doc(description: "Identifies which product attributes to search for and return."),
@@ -16,34 +10,6 @@ type Query {
         currentPage: Int = 0 @doc(description: "Specifies which page of results to return. The default value is 0."),
         sort: MsProductSortInput @doc(description: "Specifies which attribute to sort on, and whether to return the results in ascending or descending order.")
     ): MsProducts @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Products") @doc(description: "The products query searches for products that match the criteria specified in the search and filter attributes")
-}
-
-type MsCategories {
-    items: [MsCategory]
-}
-
-type MsCategory implements MsCategoryInterface @doc(description: "Category implementation") {
-
-}
-
-interface MsCategoryInterface @doc(description: "CategoryInterface contains the full set of attributes that can be returned in a category search") {
-    id: Int @doc(description: "An ID that uniquely identifies the category")
-    description: String @doc(description: "An optional description of the category")
-    name: String @doc(description: "The display name of the category")
-    path: String @doc(description: "Category Path")
-    path_in_store: String @doc(description: "Category path in store")
-    url_key: String @doc(description: "The url key assigned to the category")
-    url_path: String @doc(description: "The url path assigned to the category")
-    image: String @doc(description: "Image url assigned to the category")
-    display_mode: String @doc(description: "Display mode assigned to the category")
-    meta_title: String @doc(description: "Category meta title")
-    meta_description: String @doc(description: "Category meta description")
-    meta_keywords: String @doc(description: "Category meta keywords")
-    position: Int @doc(description: "The position of the category relative to other categories at the same level in tree")
-    level: Int @doc(description: "Indicates the depth of the category within the tree")
-    default_sort_by: String @doc(description: "The attribute to use for sorting")
-    children: [MsCategory]
-    seo_robots: String @doc(description: "Robots for meta data")
 }
 
 input MsProductSortInput  @doc(description: "ProductSortInput specifies the attribute to use for sorting search results and indicates whether the results are sorted in ascending or descending order") {
@@ -59,7 +25,7 @@ input MsProductFilterInput @doc(description: "ProductFilterInput defines the fil
     category_id: FilterTypeInput @doc(description: "Category ID the product belongs to")
 }
 
-enum IdTypeEnum @doc(description: "This enumeration indicates whether to return results as id, sku or gid (neonet product id)")
+enum IdTypeEnum @doc(description: "This enumeration indicates whether to return results as id, sku")
 {
     ID
     SKU
@@ -78,12 +44,16 @@ type MsProductData @doc(description: "The ProductInterface contains attributes t
     name: String @doc(description: "The product name. Customers use this name to identify the product.")
     description: String @doc(description: "The product description.")
     price: Float @doc(description: "Price of the product")
-    final_price: Float @doc(description: "Final price of the product")
+    special_price: Float @doc(description: "Special price of the product")
     has_special_price: Boolean @doc(description: "If product has special price")
     url: String @doc(description: "Url for product")
-    max_sale_qty: Int @doc(description: "Product max quantity in cart")
-    min_sale_qty: Int @doc(description: "Product min quantity in cart")
+    url_key: String @doc(description: "Url key for product")
     categories: [Int] @doc(description: "Array of product categories ids")
+    thumbnail: String @doc(description: "Path to thumbnail image")
+    small_image: String @doc(description: "Path to thumbnail small image")
+    image: String @doc(description: "Path to thumbnail image")
+    swatch_image: String @doc(description: "Path to thumbnail swatch image")
+    media_gallery: String @doc(description: "PRoduct media gallery")
 }
 
 type MsProducts @doc(description: "The Products object is the top-level object returned in a product search") {
