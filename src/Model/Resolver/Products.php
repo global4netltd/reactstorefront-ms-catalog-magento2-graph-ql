@@ -109,6 +109,13 @@ class Products implements ResolverInterface
     ];
 
     /**
+     * List of attributes codes that we can skip when returning attributes for product
+     *
+     * @var array
+     */
+    public static $attributesToSkip = [];
+
+    /**
      * @var string
      */
     public $resolveInfo;
@@ -156,7 +163,7 @@ class Products implements ResolverInterface
         }
 
         $this->resolveInfo = $info->getFieldSelection(3);
-        // venia outside of variables, he asks for __typename // Venia is "he"? I thought it is "she" :)
+        // venia outside of variables, he asks for __typename
         $limit = (isset($this->resolveInfo['items']) && isset($this->resolveInfo['items']['__typename'])) ? 2 : 1;
         if ((isset($this->resolveInfo['items']) && count($this->resolveInfo['items']) <= $limit && isset($this->resolveInfo['items']['sku']))
             || (isset($this->resolveInfo['items_ids']))
@@ -180,12 +187,17 @@ class Products implements ResolverInterface
 
         $storeId = $this->storeManager->getStore()->getId();
 
+        $activeAttributesCode = [];
+        if (isset($args['filter'])) {
+            if (isset($args['filter']['attributes']) && isset($args['facet']) && $args['facet']) {
+                $activeAttributesCode = $this->getActiveAttributesCode($args['filter']['attributes']) ?? '';
+            }
+        }
+
         if (isset($args['search']) && $args['search']) {
             $searchText = Parser::parseSearchText($args['search']);
             $searchText = trim(str_replace('-', ' ', $searchText));
-//            $searchText = Parser::escape(str_replace('\\', '', PhpExt::alphanumAdvanced($searchText)));
             $searchText = Parser::escape(str_replace('\\', '', $searchText));
-//            $searchText = PhpExt::convertPolishLetters($searchText);
             $searchText = Parser::parseIsInt($searchText);
             $args['search'] = $searchText;
 
@@ -202,39 +214,23 @@ class Products implements ResolverInterface
             }
         }
 
-//        $facetAndStats = null;
-//        if ((isset($args['facet']) && $args['facet'])) {
-//            $facetAndStats = $this->prepareFacetsAndStats();
-//
-//            if ($facetAndStats) {
-//                if (isset($facetAndStats['facet'])) {
-//                    $args['facet'] = $facetAndStats['facet'];
-//                }
-//                if (isset($facetAndStats['stat'])) {
-//                    $args['stat'] = $facetAndStats['stat'];
-//                }
-//            }
-//        }
-//        if (!$facetAndStats) {
-//            unset($args['facet']);
-//        }
-
         $args['filter_query'] = [
             self::$attributeMapping['store_id'] => $storeId,
             'object_type' => 'product'
         ];
 
-        return $this->getDataFromSolr($args, $fields, $additional);
+        return $this->getDataFromSolr($args, $fields, $additional, $activeAttributesCode);
     }
 
     /**
      * @param $options
      * @param $searchFields
      * @param $additional
+     * @param $activeAttributesCode
      * @return array
      * @throws NoSuchEntityException
      */
-    public function getDataFromSolr($options, $searchFields, $additional)
+    public function getDataFromSolr($options, $searchFields, $additional, $activeAttributesCode)
     {
         $config = $this->msCatalogMagento2Helper
             ->getConfiguration(
@@ -304,7 +300,6 @@ class Products implements ResolverInterface
      * @param $idType
      * @param $forSearch
      * @return array
-     * @throws NoSuchEntityException
      */
     public function prepareResultData($result, $idType, $forSearch)
     {
@@ -460,7 +455,6 @@ class Products implements ResolverInterface
 
     /**
      * @param $sort
-     * @param $categoryId
      * @return array
      */
     private function getSortParam($sort)
@@ -487,10 +481,10 @@ class Products implements ResolverInterface
     /**
      * @param $documentCollection
      * @param $idType
+     * @param bool $forSearch
      * @return array
-     * @throws NoSuchEntityException
      */
-    public function getProducts($documentCollection, $idType)
+    public function getProducts($documentCollection, $idType, $forSearch = false)
     {
         $products = [];
         $productIds = [];
@@ -511,7 +505,6 @@ class Products implements ResolverInterface
                 'description'   => $this->parseToString($document->getFieldValue('description')),
                 'price'         => $this->parseToString($document->getFieldValue('price')),
                 'special_price' => $this->parseToString($document->getFieldValue('special_price')),
-//                'has_special_price'                => $this->parseToString($document->getFieldValue('has_special_price')),
                 'type_id'       => $this->parseToString($document->getFieldValue('type_id')),
                 'url'           => $url['path'] ?? '',
                 'url_key'       => $this->parseToString($document->getFieldValue('url_key')),
@@ -521,6 +514,7 @@ class Products implements ResolverInterface
                 'swatch_image'  => $this->parseToString($document->getFieldValue('swatch_image')),
                 'media_gallery' => $this->parseToString($document->getFieldValue('media_gallery')),
                 'object_type'   => self::PRODUCT_OBJECT_TYPE,
+                'attributes'    => $this->prepareProductAttributes($document),
             ];
 
             $products[$i] = $productData;
@@ -549,5 +543,51 @@ class Products implements ResolverInterface
     public function getSolrAttributeCode($attributeCode)
     {
         return $attributeCode . '_facet';
+    }
+
+    /**
+     * @param $filters
+     * @return array
+     */
+    public function getActiveAttributesCode($filters)
+    {
+        $activeAttributesCode = [];
+
+        foreach ($filters as $filter) {
+            $codeAndValue = explode('=', $filter);
+            $activeAttributesCode[] = $codeAndValue[0];
+        }
+
+        return $activeAttributesCode;
+    }
+
+    /**
+     * @param Document $document
+     * @return array
+     */
+    protected function prepareProductAttributes(Document $document): array
+    {
+        $attributes = [];
+        /** @var Document\Field $field */
+        foreach ($document->getFields() as $field) {
+            if (in_array($field->getName(), self::$attributesToSkip)) {
+                continue;
+            }
+
+            $attribute = [];
+
+            $name = $field->getName();
+            $value = $field->getValue();
+            if (is_array($value)) {
+                $value = implode(', ', $value);
+            }
+
+            $attribute['attribute_code'] = $name;
+            $attribute['value'] = $value;
+
+            $attributes[] = $attribute;
+        }
+
+        return $attributes;
     }
 }

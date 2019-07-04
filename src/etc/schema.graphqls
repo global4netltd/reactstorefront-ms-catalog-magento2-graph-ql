@@ -15,6 +15,9 @@ type Query {
         level: [Int] @doc(description: "Level of the category")
         children: Boolean @doc(description: "Children of the category")
     ): MsCategories @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Categories")
+    attributes (
+        attributeCodes: [String] @doc(description: "List of attribute codes")
+    ): Attributes @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Attribute") @doc(description: "The attributes query returns information about attributes and options")
 }
 
 input MsProductSortInput  @doc(description: "ProductSortInput specifies the attribute to use for sorting search results and indicates whether the results are sorted in ascending or descending order") {
@@ -59,6 +62,7 @@ type MsProductData @doc(description: "The ProductInterface contains attributes t
     image: String @doc(description: "Path to thumbnail image")
     swatch_image: String @doc(description: "Path to thumbnail swatch image")
     media_gallery: String @doc(description: "PRoduct media gallery")
+    attributes: [ProductAttribute] @doc(description: "Product attributes")
 }
 
 type MsProducts @doc(description: "The Products object is the top-level object returned in a product search") {
@@ -92,6 +96,11 @@ type MsStatData @doc(description: "The StatData object contains statistic data o
     count: Int @doc(description: "Number of filtered products")
 }
 
+type ProductAttribute @doc(description: "Product attribute contains attribute code and value.") {
+    attribute_code: String @doc(description: "Product attribute code")
+    value: String @doc(description: "Product attribute value")
+}
+
 type MsCategories {
     items: [MsCategoryData] @doc(description: "An array of categories")
 }
@@ -121,9 +130,28 @@ type MsCategoryData @typeResolver(class: "Magento\\CatalogGraphQl\\Model\\Catego
         currentPage: Int = 0 @doc(description: "Specifies which page of results to return. The default value is 0.")
         sort: MsProductSortInput @doc(description: "Specifies which attribute to sort on, and whether to return the results in ascending or descending order.")
     ): MsProducts @doc(description: "The products query searches for products that match the criteria specified in the search and filter attributes")
-        @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Products")
+    @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Products")
     children: [MsCategoryData] @doc(description: "Category children array")
     children_count: Int @doc(description: "Category children count")
     solr_facets: [String] @doc(description: "The attribute to use for filters")
     seo_robots: String @doc(description: "Robots for meta data")
+}
+
+type Attributes @doc(description: "List of attributes") {
+    attributes: [AttributeDefinition]
+}
+
+type AttributeDefinition @doc(description: "Attribute contains the attribute_type of the specified attribute_code and entity_type") {
+    attribute_code: String @doc(description: "The unique identifier for an attribute code. This value should be in lowercase letters without spaces.")
+    backend_type: String @doc(description: "The backend type of the attribute")
+    frontend_input: String @doc(description: "The frontend input type of the attribute")
+    attribute_type: String @doc(description: "The type of the attribute (select, multiselect, range)")
+    attribute_label: String @doc(description: "Label of the attribute")
+    attribute_options: [AttributeOption] @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\AttributeOption") @doc(description: "Attribute options list.")
+    position: Int @doc(description: "Position of the attribute")
+}
+
+type AttributeOption @doc(description: "Attribute option.") {
+    value: Int @doc(description: "Attribute option id.")
+    label: String @doc(description: "Attribute option label.")
 }
