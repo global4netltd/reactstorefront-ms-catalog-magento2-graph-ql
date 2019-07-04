@@ -75,14 +75,6 @@ class AttributeOption implements ResolverInterface
             $data = [];
         }
 
-//        $attributeOptions = [];
-//        foreach ($data as $option) {
-//            $attributeOptions['option_id'] = $option['value'] ?? null;
-//            $attributeOptions['label'] = $option['label'] ?? null;
-//        }
-//
-//        return $attributeOptions;
-
         return $data;
     }
 }

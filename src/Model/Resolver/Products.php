@@ -189,9 +189,6 @@ class Products implements ResolverInterface
 
         $activeAttributesCode = [];
         if (isset($args['filter'])) {
-//            if (isset($args['filter']['category_id'])) {
-//                $categoryId = (int)$args['filter']['category_id']['eq'];
-//            }
             if (isset($args['filter']['attributes']) && isset($args['facet']) && $args['facet']) {
                 $activeAttributesCode = $this->getActiveAttributesCode($args['filter']['attributes']) ?? '';
             }
@@ -200,9 +197,7 @@ class Products implements ResolverInterface
         if (isset($args['search']) && $args['search']) {
             $searchText = Parser::parseSearchText($args['search']);
             $searchText = trim(str_replace('-', ' ', $searchText));
-//            $searchText = Parser::escape(str_replace('\\', '', PhpExt::alphanumAdvanced($searchText)));
             $searchText = Parser::escape(str_replace('\\', '', $searchText));
-//            $searchText = PhpExt::convertPolishLetters($searchText);
             $searchText = Parser::parseIsInt($searchText);
             $args['search'] = $searchText;
 
@@ -218,23 +213,6 @@ class Products implements ResolverInterface
                 $args['sort'] = ['sort_by' => 'popularity', 'sort_order' => 'desc'];
             }
         }
-
-//        $facetAndStats = null;
-//        if ((isset($args['facet']) && $args['facet'])) {
-//            $facetAndStats = $this->prepareFacetsAndStats();
-//
-//            if ($facetAndStats) {
-//                if (isset($facetAndStats['facet'])) {
-//                    $args['facet'] = $facetAndStats['facet'];
-//                }
-//                if (isset($facetAndStats['stat'])) {
-//                    $args['stat'] = $facetAndStats['stat'];
-//                }
-//            }
-//        }
-//        if (!$facetAndStats) {
-//            unset($args['facet']);
-//        }
 
         $args['filter_query'] = [
             self::$attributeMapping['store_id'] => $storeId,
@@ -527,7 +505,6 @@ class Products implements ResolverInterface
                 'description'   => $this->parseToString($document->getFieldValue('description')),
                 'price'         => $this->parseToString($document->getFieldValue('price')),
                 'special_price' => $this->parseToString($document->getFieldValue('special_price')),
-//                'has_special_price'                => $this->parseToString($document->getFieldValue('has_special_price')),
                 'type_id'       => $this->parseToString($document->getFieldValue('type_id')),
                 'url'           => $url['path'] ?? '',
                 'url_key'       => $this->parseToString($document->getFieldValue('url_key')),
