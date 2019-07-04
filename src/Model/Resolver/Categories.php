@@ -231,7 +231,7 @@ class Categories implements ResolverInterface
             'image'            => $urlImage['path'] ?? '',
             'url'              => $urlCategory['path'] ?? '',
             'url_key'          => $this->parseToString($categoryData->getFieldValue('url_key')),
-            'url_path'         => $this->parseToString($categoryData->getFieldValue('url_path')),
+            'url_path'         => '/' . ltrim($this->parseToString($categoryData->getFieldValue('url_path')), '/'),
             'seo_robots'       => $this->parseToString($categoryData->getFieldValue('seo_robots')),
             'object_type'      => self::CATEGORY_OBJECT_TYPE
         ];
