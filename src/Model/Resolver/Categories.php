@@ -54,7 +54,7 @@ class Categories implements ResolverInterface
         'name'      => 'name_s',
         'position'  => 'position_s_ni',
         'parent_id' => 'parent_id_s',
-        'store_id'  => 'store_id_s_ni',
+        'store_id'  => 'store_id_s',
     ];
 
     /**
@@ -231,12 +231,25 @@ class Categories implements ResolverInterface
             'image'            => $urlImage['path'] ?? '',
             'url'              => $urlCategory['path'] ?? '',
             'url_key'          => $this->parseToString($categoryData->getFieldValue('url_key')),
-            'url_path'         => '/' . ltrim($this->parseToString($categoryData->getFieldValue('url_path')), '/'),
+            'url_path'         => $this->parseUrl($categoryData->getFieldValue('url_path')),
             'seo_robots'       => $this->parseToString($categoryData->getFieldValue('seo_robots')),
             'object_type'      => self::CATEGORY_OBJECT_TYPE
         ];
 
         return $data;
+    }
+
+    /**
+     * @param $url
+     * @return string
+     */
+    public function parseUrl($url)
+    {
+        if ($url) {
+            return '/' . ltrim($this->parseToString($url), '/');
+        }
+
+        return '';
     }
 
     /**
