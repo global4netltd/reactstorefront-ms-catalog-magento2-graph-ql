@@ -94,8 +94,10 @@ class Attribute
             $attributeCode = $args['attributeCodes'][$i];
             $cacheIdentifier = self::CACHE_KEY . ':' . $attributeCode . ':' . $storeId;
             if ($cached = $this->cache->load($cacheIdentifier)) {
-                unset($allAttributesCodes[$i]);
-                $attributesFromCache[$attributeCode] = $this->serializer->unserialize($cached);
+                if ($attributeData = $this->serializer->unserialize($cached)) {
+                    unset($allAttributesCodes[$i]);
+                    $attributesFromCache[$attributeCode] = $attributeData;
+                }
             }
         }
 

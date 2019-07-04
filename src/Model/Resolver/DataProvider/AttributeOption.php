@@ -76,7 +76,10 @@ class AttributeOption
         $cacheIdentifier = self::CACHE_KEY . ':' . $attributeCode . ':' . $this->storeManager->getStore()->getId();
 
         if ($cached = $this->cache->load($cacheIdentifier)) {
-            return $this->serializer->unserialize($cached);
+            $attributeOptions = $this->serializer->unserialize($cached);
+            if ($attributeOptions) {
+                return $attributeOptions;
+            }
         }
 
         $attribute = $this->eavConfig->getAttribute('catalog_product', $attributeCode);
