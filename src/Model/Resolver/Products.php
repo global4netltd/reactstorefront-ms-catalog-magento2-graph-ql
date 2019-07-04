@@ -88,7 +88,7 @@ class Products implements ResolverInterface
         'price'             => 'price_f',
         'max_sale_qty'      => 'max_sale_qty_i',
         'min_sale_qty'      => 'min_sale_qty_i',
-        'store_id'          => 'store_id_s_ni',
+        'store_id'          => 'store_id_s',
     ];
 
     /**
