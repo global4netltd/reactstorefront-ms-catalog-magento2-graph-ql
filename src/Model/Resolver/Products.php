@@ -400,7 +400,7 @@ class Products implements ResolverInterface
                     break;
                 case 'skus':
                     if ($filterValue = Parser::parseFilterValueNumeric(implode(',', array_filter($filter)))) {
-                        $skus = 'sku_i=' . preg_replace('/[,]{2,}/i', ',', rtrim($filterValue, ','));
+                        $skus = 'sku_s=' . preg_replace('/[,]{2,}/i', ',', rtrim($filterValue, ','));
                         $params[] = str_replace('-', '\-', $skus);
                     }
                     break;
@@ -556,7 +556,7 @@ class Products implements ResolverInterface
      */
     public function getSolrAttributeCode($attributeCode)
     {
-        return $attributeCode . '_facet';
+        return $attributeCode;
     }
 
     /**
