@@ -54,7 +54,7 @@ class Categories implements ResolverInterface
         'name'      => 'name_s',
         'position'  => 'position_s_ni',
         'parent_id' => 'parent_id_s',
-        'store_id'  => 'store_id_s_ni',
+        'store_id'  => 'store_id_s',
     ];
 
     /**
