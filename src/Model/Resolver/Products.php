@@ -82,7 +82,7 @@ class Products implements ResolverInterface
      * @var array
      */
     public static $attributeMapping = [
-        'category_id'       => 'category_ids_i_ni_mv',
+        'category_id'       => 'category_ids_i_mv',
         'sku'               => 'sku_s',
         'id'                => 'object_id',
         'price'             => 'price_f',
@@ -507,7 +507,7 @@ class Products implements ResolverInterface
                 'special_price' => $this->parseToString($document->getFieldValue('special_price')),
                 'type_id'       => $this->parseToString($document->getFieldValue('type_id')),
                 'url'           => $url['path'] ?? '',
-                'url_key'       => '/' . ltrim($this->parseToString($document->getFieldValue('url_key')), '/'),
+                'url_key'       => $this->parseUrl($document->getFieldValue('url_key')),
                 'thumbnail'     => $this->parseToString($document->getFieldValue('thumbnail')),
                 'small_image'   => $this->parseToString($document->getFieldValue('small_image')),
                 'image'         => $this->parseToString($document->getFieldValue('image')),
@@ -515,7 +515,7 @@ class Products implements ResolverInterface
                 'media_gallery' => $this->parseToString($document->getFieldValue('media_gallery')),
                 'object_type'   => self::PRODUCT_OBJECT_TYPE,
                 'attributes'    => $this->prepareProductAttributes($document),
-                'category_ids'  => $this->parseToString($document->getFieldValue('category_ids')),
+//                'category_ids'  => $this->parseToString($document->getFieldValue('category_ids')),
             ];
 
             $products[$i] = $productData;
@@ -526,6 +526,19 @@ class Products implements ResolverInterface
         ksort($products);
 
         return ['items' => $products, 'items_ids' => $productIds];
+    }
+
+    /**
+     * @param $url
+     * @return string
+     */
+    public function parseUrl($url)
+    {
+        if ($url) {
+            return '/' . ltrim($this->parseToString($url), '/');
+        }
+
+        return '';
     }
 
     /**
