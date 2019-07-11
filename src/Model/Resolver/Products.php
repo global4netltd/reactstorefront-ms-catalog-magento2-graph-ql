@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
 
 use Exception;
+use G4NReact\MsCatalog\Client\ClientFactory;
 use G4NReact\MsCatalog\Document;
 use G4NReact\MsCatalog\Query;
 use G4NReact\MsCatalogMagento2\Helper\Config as ConfigHelper;
@@ -49,12 +50,12 @@ class Products implements ResolverInterface
     /**
      * @var DeploymentConfig
      */
-    private $deploymentConfig;
+    protected $deploymentConfig;
 
     /**
      * @var StoreManagerInterface
      */
-    private $storeManager;
+    protected $storeManager;
 
     /**
      * @var Json
@@ -64,12 +65,12 @@ class Products implements ResolverInterface
     /**
      * @var LoggerInterface
      */
-    private $logger;
+    protected $logger;
 
     /**
      * @var ConfigHelper
      */
-    protected $magento2ConfigHelper;
+    protected $configHelper;
 
     /**
      * @var array
@@ -129,7 +130,7 @@ class Products implements ResolverInterface
      * @param StoreManagerInterface $storeManager
      * @param Json $serializer
      * @param LoggerInterface $logger
-     * @param ConfigHelper $magento2ConfigHelper
+     * @param ConfigHelper $configHelper
      */
     public function __construct(
         CacheInterface $cache,
@@ -137,14 +138,15 @@ class Products implements ResolverInterface
         StoreManagerInterface $storeManager,
         Json $serializer,
         LoggerInterface $logger,
-        ConfigHelper $magento2ConfigHelper
+        ConfigHelper $configHelper
     ) {
         $this->cache = $cache;
         $this->deploymentConfig = $deploymentConfig;
         $this->storeManager = $storeManager;
         $this->serializer = $serializer;
         $this->logger = $logger;
-        $this->magento2ConfigHelper = $magento2ConfigHelper;
+        $this->configHelper = $configHelper;
+        $this->query = $query;
     }
 
     /**
@@ -163,7 +165,8 @@ class Products implements ResolverInterface
             );
         }
 
-        $query = new \G4NReact\MsCatalogSolr\Query();
+        $client = ClientFactory::getInstance($this->configHelper->getConfiguration());
+        $query = $client->getQuery();
 
         $this->resolveInfo = $info->getFieldSelection(3);
 
@@ -174,6 +177,8 @@ class Products implements ResolverInterface
         ) {
             $defaultPageSize = 10000;
 
+            var_dump($args);die;
+//            $query->addFilter();
             $args['fields_to_fetch'] = [self::$attributeMapping['sku']];
             $args['id_type'] = self::$idTypeMapping['SKU'];
             if (isset($args['filter']) && isset($args['filter']['id_type']) && ($idType = $args['filter']['id_type'])) {
@@ -239,7 +244,7 @@ class Products implements ResolverInterface
      */
     public function getDataFromSolr($options, $searchFields, $additional, $activeAttributesCode)
     {
-        $config = $this->magento2ConfigHelper->getConfiguration();
+        $config = $this->configHelper->getConfiguration();
 
         // @ToDo: Temporarily solution - change this ASAP
         $msCatalog = new Query('solr', $config, $options);
