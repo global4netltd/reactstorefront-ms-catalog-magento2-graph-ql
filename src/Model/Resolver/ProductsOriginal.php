@@ -1,11 +1,12 @@
 <?php
+
 declare(strict_types=1);
 
 namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
 
 use G4NReact\MsCatalog\Document;
 use G4NReact\MsCatalog\Query;
-use G4NReact\MsCatalogMagento2\Helper\Config as ConfigHelper;
+use G4NReact\MsCatalogMagento2\Helper\MsCatalog as MsCatalogHelper;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Parser;
 use G4NReact\MsCatalogSolr\Response;
 use Magento\Framework\App\CacheInterface;
@@ -22,6 +23,7 @@ use Psr\Log\LoggerInterface;
 /**
  * Class Products
  * @package Global4net\CatalogGraphQl\Model\Resolver
+ * @deprecated this is preview of old products class
  */
 class Products implements ResolverInterface
 {
@@ -66,9 +68,9 @@ class Products implements ResolverInterface
     private $logger;
 
     /**
-     * @var ConfigHelper
+     * @var MsCatalogHelper
      */
-    protected $magento2ConfigHelper;
+    protected $msCatalogMagento2Helper;
 
     /**
      * @var array
@@ -128,7 +130,7 @@ class Products implements ResolverInterface
      * @param StoreManagerInterface $storeManager
      * @param Json $serializer
      * @param LoggerInterface $logger
-     * @param ConfigHelper $magento2ConfigHelper
+     * @param MsCatalogHelper $msCatalogMagento2Helper
      */
     public function __construct(
         CacheInterface $cache,
@@ -136,14 +138,14 @@ class Products implements ResolverInterface
         StoreManagerInterface $storeManager,
         Json $serializer,
         LoggerInterface $logger,
-        ConfigHelper $magento2ConfigHelper
+        MsCatalogHelper $msCatalogMagento2Helper
     ) {
         $this->cache = $cache;
         $this->deploymentConfig = $deploymentConfig;
         $this->storeManager = $storeManager;
         $this->serializer = $serializer;
         $this->logger = $logger;
-        $this->magento2ConfigHelper = $magento2ConfigHelper;
+        $this->msCatalogMagento2Helper = $msCatalogMagento2Helper;
     }
 
     /**
@@ -162,17 +164,13 @@ class Products implements ResolverInterface
             );
         }
 
-        $query = new \G4NReact\MsCatalogSolr\Query();
-
         $this->resolveInfo = $info->getFieldSelection(3);
-
         // venia outside of variables, he asks for __typename
         $limit = (isset($this->resolveInfo['items']) && isset($this->resolveInfo['items']['__typename'])) ? 2 : 1;
         if ((isset($this->resolveInfo['items']) && count($this->resolveInfo['items']) <= $limit && isset($this->resolveInfo['items']['sku']))
             || (isset($this->resolveInfo['items_ids']))
         ) {
             $defaultPageSize = 10000;
-
             $args['fields_to_fetch'] = [self::$attributeMapping['sku']];
             $args['id_type'] = self::$idTypeMapping['SKU'];
             if (isset($args['filter']) && isset($args['filter']['id_type']) && ($idType = $args['filter']['id_type'])) {
@@ -184,10 +182,7 @@ class Products implements ResolverInterface
         } else {
             $defaultPageSize = 100;
         }
-
-        $pageSize = $args['pageSize'] ?? $defaultPageSize;
-
-        $query->setPageSize($pageSize);
+        $args['pageSize'] = $args['pageSize'] ?? $defaultPageSize;
 
         $fields = [];
         $additional = '';
@@ -203,16 +198,17 @@ class Products implements ResolverInterface
 
         if (isset($args['search']) && $args['search']) {
             $searchText = Parser::parseSearchText($args['search']);
-            $query->setQueryText($searchText);
+            $searchText = trim(str_replace('-', ' ', $searchText));
+            $searchText = Parser::escape(str_replace('\\', '', $searchText));
+            $searchText = Parser::parseIsInt($searchText);
+            $args['search'] = $searchText;
 
             if (isset($args['filter'])) {
                 $args['filter'] = $this->getFilters($args['filter']);
             }
-
             if (!isset($args['sort'])) {
                 $args['sort'] = ['sort_by' => 'score', 'sort_order' => 'desc'];
             }
-
         } elseif (isset($args['filter'])) {
             $args['filter'] = $this->getFilters($args['filter']);
             if (!isset($args['sort'])) {
@@ -238,10 +234,10 @@ class Products implements ResolverInterface
      */
     public function getDataFromSolr($options, $searchFields, $additional, $activeAttributesCode)
     {
-        $config = $this->magento2ConfigHelper
+        $config = $this->msCatalogMagento2Helper
             ->getConfiguration(
-                $this->magento2ConfigHelper->getSearchEngineConfiguration(),
-                $this->magento2ConfigHelper->getEcommerceEngineConfiguration()
+                $this->msCatalogMagento2Helper->getSearchEngineConfiguration(),
+                $this->msCatalogMagento2Helper->getEcommerceEngineConfiguration()
             );
 
         // @ToDo: Temporarily solution - change this ASAP
