@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
 
+use Exception;
 use G4NReact\MsCatalog\Document;
 use G4NReact\MsCatalog\Query;
 use G4NReact\MsCatalogMagento2\Helper\Config as ConfigHelper;
@@ -234,15 +235,11 @@ class Products implements ResolverInterface
      * @param $additional
      * @param $activeAttributesCode
      * @return array
-     * @throws NoSuchEntityException
+     * @throws Exception
      */
     public function getDataFromSolr($options, $searchFields, $additional, $activeAttributesCode)
     {
-        $config = $this->magento2ConfigHelper
-            ->getConfiguration(
-                $this->magento2ConfigHelper->getSearchEngineConfiguration(),
-                $this->magento2ConfigHelper->getEcommerceEngineConfiguration()
-            );
+        $config = $this->magento2ConfigHelper->getConfiguration();
 
         // @ToDo: Temporarily solution - change this ASAP
         $msCatalog = new Query('solr', $config, $options);

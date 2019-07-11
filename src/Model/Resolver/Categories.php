@@ -3,9 +3,12 @@ declare(strict_types=1);
 
 namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
 
+use Exception;
+use G4NReact\MsCatalog\Client\ClientFactory;
 use G4NReact\MsCatalog\Document;
 use G4NReact\MsCatalog\Query;
 use G4NReact\MsCatalogMagento2\Helper\Config as ConfigHelper;
+use G4NReact\MsCatalogMagento2\Helper\Query as QueryHelper;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Parser;
 use Magento\Framework\App\DeploymentConfig;
 use Magento\Framework\Exception\NoSuchEntityException;
@@ -46,6 +49,11 @@ class Categories implements ResolverInterface
     protected $msCatalogMagento2Helper;
 
     /**
+     * @var QueryHelper
+     */
+    protected $msCatalogQueryHelper;
+
+    /**
      * @var array
      */
     public static $attributeMapping = [
@@ -62,16 +70,18 @@ class Categories implements ResolverInterface
      * @param DeploymentConfig $deploymentConfig
      * @param StoreManagerInterface $storeManager
      * @param ConfigHelper $msCatalogMagento2Helper
+     * @param QueryHelper $msCatalogQueryHelper
      */
     public function __construct(
         DeploymentConfig $deploymentConfig,
         StoreManagerInterface $storeManager,
-        ConfigHelper $msCatalogMagento2Helper
-    )
-    {
+        ConfigHelper $msCatalogMagento2Helper,
+        QueryHelper $msCatalogQueryHelper
+    ) {
         $this->deploymentConfig = $deploymentConfig;
         $this->storeManager = $storeManager;
         $this->msCatalogMagento2Helper = $msCatalogMagento2Helper;
+        $this->msCatalogQueryHelper = $msCatalogQueryHelper;
     }
 
     /**
@@ -125,6 +135,7 @@ class Categories implements ResolverInterface
      * @param bool $children
      * @return array
      * @throws NoSuchEntityException
+     * @throws Exception
      */
     public function getCategoryFromSolr(array $ids = [], $level = null, $children = false)
     {
@@ -133,33 +144,75 @@ class Categories implements ResolverInterface
 
         $storeId = $this->storeManager->getStore()->getId();
 
-        $params['filter_query'] = [
-            self::$attributeMapping['store_id'] => $storeId,
-            'object_type' => 'category',
-        ];
+//        $params['filter_query'] = [
+//            self::$attributeMapping['store_id'] => $storeId,
+//            'object_type' => 'category',
+//        ];
+//        if ($level) {
+//            $params['filter'] = [self::$attributeMapping['level'] . '=' . implode(',', $level)];
+//            $params['pageSize'] = 1000;
+//            $params['fields_to_fetch'] = self::$attributeMapping;
+//            $params['fields_to_fetch'][] = ['object_id'];
+//        } elseif ($children) {
+//            $params['filter'] = [self::$attributeMapping['parent_id'] . '=' . $categoryIds];
+//            $params['pageSize'] = 100;
+//        } elseif ($categoryIds) {
+//            $params['filter'] = ['object_id=' . $categoryIds];
+//            $params['pageSize'] = count($ids);
+//        }
+
+        $config = $this->msCatalogMagento2Helper->getConfiguration();
+        $client = ClientFactory::create($config);
+        $msCatalogForCategory = $client->getQuery();
+
+        $msCatalogForCategory->addFilters([
+            [
+                $this->msCatalogQueryHelper
+                    ->getFieldByAttributeCode('store_id', 'catalog_category'),
+                $storeId
+            ],
+            [
+                $this->msCatalogQueryHelper
+                    ->getFieldByAttributeCode('object_type', 'catalog_category'),
+                'category'
+            ],
+        ]);
+
         if ($level) {
-            $params['filter'] = [self::$attributeMapping['level'] . '=' . implode(',', $level)];
-            $params['pageSize'] = 1000;
-            $params['fields_to_fetch'] = self::$attributeMapping;
-            $params['fields_to_fetch'][] = ['object_id'];
+            $msCatalogForCategory->addFilter(
+                $this->msCatalogQueryHelper
+                    ->getFieldByAttributeCode('level', 'catalog_category'),
+                $level
+            );
+            $msCatalogForCategory->setPageSize(1000);
+            $msCatalogForCategory->addFieldsToSelect([
+                'level', 'url', 'name', 'position', 'parent_id', 'store_id', 'object_id'
+            ]);
         } elseif ($children) {
-            $params['filter'] = [self::$attributeMapping['parent_id'] . '=' . $categoryIds];
-            $params['pageSize'] = 100;
+            $msCatalogForCategory->addFilter(
+                $this->msCatalogQueryHelper
+                    ->getFieldByAttributeCode('parent_id', 'catalog_category'),
+                $categoryIds
+            );
+            $msCatalogForCategory->setPageSize(100);
         } elseif ($categoryIds) {
-            $params['filter'] = ['object_id=' . $categoryIds];
-            $params['pageSize'] = count($ids);
+            $msCatalogForCategory->addFilter(
+                $this->msCatalogQueryHelper
+                    ->getFieldByAttributeCode('object_id', 'catalog_category'),
+                $categoryIds
+            );
+            $msCatalogForCategory->setPageSize(count($ids));
         }
 
-        $config = $this->msCatalogMagento2Helper
-            ->getConfiguration(
-                $this->msCatalogMagento2Helper->getSearchEngineConfiguration(),
-                $this->msCatalogMagento2Helper->getEcommerceEngineConfiguration()
-            );
+        $msCatalogForCategory->setSort([
+            [self::$attributeMapping['level'], 'ASC'],
+            [self::$attributeMapping['position'], 'ASC'],
+        ]);
 
-        // @ToDo: Temporarily solution - change this ASAP
-        $msCatalogForCategory = new Query('solr', $config, $params);
-        $msCatalogForCategory->setSort([[self::$attributeMapping['level'] => 'ASC'], [self::$attributeMapping['position'] => 'ASC']]);
-        $categoryResult = $msCatalogForCategory->getResult();
+//        $msCatalogForCategory->setSort([[self::$attributeMapping['level'] => 'ASC'], [self::$attributeMapping['position'] => 'ASC']]);
+
+        $categoryResult = $msCatalogForCategory->getResponse();
+
         if ($categoryResult->getNumFound()) {
             foreach ($categoryResult->getDocumentsCollection() as $category) {
                 $solrCategory = $this->prepareCategoryResult($category);
