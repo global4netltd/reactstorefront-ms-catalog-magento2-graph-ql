@@ -5,7 +5,7 @@ namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
 
 use G4NReact\MsCatalog\Document;
 use G4NReact\MsCatalog\Query;
-use G4NReact\MsCatalogMagento2\Helper\MsCatalog as MsCatalogHelper;
+use G4NReact\MsCatalogMagento2\Helper\Config as ConfigHelper;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Parser;
 use G4NReact\MsCatalogSolr\Response;
 use Magento\Framework\App\CacheInterface;
@@ -66,9 +66,9 @@ class Products implements ResolverInterface
     private $logger;
 
     /**
-     * @var MsCatalogHelper
+     * @var ConfigHelper
      */
-    protected $msCatalogMagento2Helper;
+    protected $magento2ConfigHelper;
 
     /**
      * @var array
@@ -128,7 +128,7 @@ class Products implements ResolverInterface
      * @param StoreManagerInterface $storeManager
      * @param Json $serializer
      * @param LoggerInterface $logger
-     * @param MsCatalogHelper $msCatalogMagento2Helper
+     * @param ConfigHelper $magento2ConfigHelper
      */
     public function __construct(
         CacheInterface $cache,
@@ -136,14 +136,14 @@ class Products implements ResolverInterface
         StoreManagerInterface $storeManager,
         Json $serializer,
         LoggerInterface $logger,
-        MsCatalogHelper $msCatalogMagento2Helper
+        ConfigHelper $magento2ConfigHelper
     ) {
         $this->cache = $cache;
         $this->deploymentConfig = $deploymentConfig;
         $this->storeManager = $storeManager;
         $this->serializer = $serializer;
         $this->logger = $logger;
-        $this->msCatalogMagento2Helper = $msCatalogMagento2Helper;
+        $this->magento2ConfigHelper = $magento2ConfigHelper;
     }
 
     /**
@@ -232,10 +232,10 @@ class Products implements ResolverInterface
      */
     public function getDataFromSolr($options, $searchFields, $additional, $activeAttributesCode)
     {
-        $config = $this->msCatalogMagento2Helper
+        $config = $this->magento2ConfigHelper
             ->getConfiguration(
-                $this->msCatalogMagento2Helper->getSearchEngineConfiguration(),
-                $this->msCatalogMagento2Helper->getEcommerceEngineConfiguration()
+                $this->magento2ConfigHelper->getSearchEngineConfiguration(),
+                $this->magento2ConfigHelper->getEcommerceEngineConfiguration()
             );
 
         // @ToDo: Temporarily solution - change this ASAP

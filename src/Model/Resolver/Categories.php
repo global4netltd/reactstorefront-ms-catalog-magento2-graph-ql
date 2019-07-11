@@ -5,7 +5,7 @@ namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
 
 use G4NReact\MsCatalog\Document;
 use G4NReact\MsCatalog\Query;
-use G4NReact\MsCatalogMagento2\Helper\MsCatalog as MsCatalogHelper;
+use G4NReact\MsCatalogMagento2\Helper\Config as ConfigHelper;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Parser;
 use Magento\Framework\App\DeploymentConfig;
 use Magento\Framework\Exception\NoSuchEntityException;
@@ -41,7 +41,7 @@ class Categories implements ResolverInterface
     private $storeManager;
 
     /**
-     * @var MsCatalogHelper
+     * @var ConfigHelper
      */
     protected $msCatalogMagento2Helper;
 
@@ -61,12 +61,12 @@ class Categories implements ResolverInterface
      * Categories constructor.
      * @param DeploymentConfig $deploymentConfig
      * @param StoreManagerInterface $storeManager
-     * @param MsCatalogHelper $msCatalogMagento2Helper
+     * @param ConfigHelper $msCatalogMagento2Helper
      */
     public function __construct(
         DeploymentConfig $deploymentConfig,
         StoreManagerInterface $storeManager,
-        MsCatalogHelper $msCatalogMagento2Helper
+        ConfigHelper $msCatalogMagento2Helper
     )
     {
         $this->deploymentConfig = $deploymentConfig;
