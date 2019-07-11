@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
@@ -22,6 +23,7 @@ use Psr\Log\LoggerInterface;
 /**
  * Class Products
  * @package Global4net\CatalogGraphQl\Model\Resolver
+ * @deprecated this is preview of old products class
  */
 class Products implements ResolverInterface
 {
@@ -162,17 +164,13 @@ class Products implements ResolverInterface
             );
         }
 
-        $query = new \G4NReact\MsCatalogSolr\Query();
-
         $this->resolveInfo = $info->getFieldSelection(3);
-
         // venia outside of variables, he asks for __typename
         $limit = (isset($this->resolveInfo['items']) && isset($this->resolveInfo['items']['__typename'])) ? 2 : 1;
         if ((isset($this->resolveInfo['items']) && count($this->resolveInfo['items']) <= $limit && isset($this->resolveInfo['items']['sku']))
             || (isset($this->resolveInfo['items_ids']))
         ) {
             $defaultPageSize = 10000;
-
             $args['fields_to_fetch'] = [self::$attributeMapping['sku']];
             $args['id_type'] = self::$idTypeMapping['SKU'];
             if (isset($args['filter']) && isset($args['filter']['id_type']) && ($idType = $args['filter']['id_type'])) {
@@ -184,10 +182,7 @@ class Products implements ResolverInterface
         } else {
             $defaultPageSize = 100;
         }
-
-        $pageSize = $args['pageSize'] ?? $defaultPageSize;
-
-        $query->setPageSize($pageSize);
+        $args['pageSize'] = $args['pageSize'] ?? $defaultPageSize;
 
         $fields = [];
         $additional = '';
@@ -203,16 +198,17 @@ class Products implements ResolverInterface
 
         if (isset($args['search']) && $args['search']) {
             $searchText = Parser::parseSearchText($args['search']);
-            $query->setQueryText($searchText);
+            $searchText = trim(str_replace('-', ' ', $searchText));
+            $searchText = Parser::escape(str_replace('\\', '', $searchText));
+            $searchText = Parser::parseIsInt($searchText);
+            $args['search'] = $searchText;
 
             if (isset($args['filter'])) {
                 $args['filter'] = $this->getFilters($args['filter']);
             }
-
             if (!isset($args['sort'])) {
                 $args['sort'] = ['sort_by' => 'score', 'sort_order' => 'desc'];
             }
-
         } elseif (isset($args['filter'])) {
             $args['filter'] = $this->getFilters($args['filter']);
             if (!isset($args['sort'])) {
