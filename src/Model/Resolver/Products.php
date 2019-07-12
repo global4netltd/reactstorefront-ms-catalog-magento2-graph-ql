@@ -20,6 +20,7 @@ use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Store\Model\StoreManagerInterface;
 use Psr\Log\LoggerInterface;
+use G4NReact\MsCatalog\Document\Field;
 
 /**
  * Class Products
@@ -84,22 +85,22 @@ class Products implements ResolverInterface
      * @var array
      */
     public static $attributeMapping = [
-        'category_id'       => 'category_ids_i_mv',
-        'sku'               => 'sku_s',
-        'id'                => 'object_id',
-        'price'             => 'price_f',
-        'max_sale_qty'      => 'max_sale_qty_i',
-        'min_sale_qty'      => 'min_sale_qty_i',
-        'store_id'          => 'store_id_s',
+        'category_id'  => 'category_ids_i_mv',
+        'sku'          => 'sku_s',
+        'id'           => 'object_id',
+        'price'        => 'price_f',
+        'max_sale_qty' => 'max_sale_qty_i',
+        'min_sale_qty' => 'min_sale_qty_i',
+        'store_id'     => 'store_id_s',
     ];
 
     /**
      * @var array
      */
     public static $sortMapping = [
-        'score'        => 'score',
-        'name'         => 'name_s',
-        'price'        => 'price_f',
+        'score' => 'score',
+        'name'  => 'name_s',
+        'price' => 'price_f',
     ];
 
     /**
@@ -139,14 +140,14 @@ class Products implements ResolverInterface
         Json $serializer,
         LoggerInterface $logger,
         ConfigHelper $configHelper
-    ) {
+    )
+    {
         $this->cache = $cache;
         $this->deploymentConfig = $deploymentConfig;
         $this->storeManager = $storeManager;
         $this->serializer = $serializer;
         $this->logger = $logger;
         $this->configHelper = $configHelper;
-        $this->query = $query;
     }
 
     /**
@@ -158,7 +159,8 @@ class Products implements ResolverInterface
         ResolveInfo $info,
         array $value = null,
         array $args = null
-    ) {
+    )
+    {
         if (!isset($args['search']) && !isset($args['filter'])) {
             throw new GraphQlInputException(
                 __("'search' or 'filter' input argument is required.")
@@ -168,6 +170,12 @@ class Products implements ResolverInterface
         $client = ClientFactory::getInstance($this->configHelper->getConfiguration());
         $query = $client->getQuery();
 
+        $storeId = $this->storeManager->getStore()->getId();
+        $query->addFilters([
+            new Document\Field('store_id', $storeId),
+            new Document\Field('object_type', 'product')
+        ]);
+
         $this->resolveInfo = $info->getFieldSelection(3);
 
         // venia outside of variables, he asks for __typename
@@ -175,9 +183,8 @@ class Products implements ResolverInterface
         if ((isset($this->resolveInfo['items']) && count($this->resolveInfo['items']) <= $limit && isset($this->resolveInfo['items']['sku']))
             || (isset($this->resolveInfo['items_ids']))
         ) {
-            $defaultPageSize = 10000;
+            $maxPageSize = 10000;
 
-            var_dump($args);die;
 //            $query->addFilter();
             $args['fields_to_fetch'] = [self::$attributeMapping['sku']];
             $args['id_type'] = self::$idTypeMapping['SKU'];
@@ -186,19 +193,18 @@ class Products implements ResolverInterface
                 $args['id_type'] = self::$idTypeMapping[$idType];
             }
         } elseif (isset($args['search']) && $args['search']) {
-            $defaultPageSize = 3000;
+            $maxPageSize = 3000;
         } else {
-            $defaultPageSize = 100;
+            $maxPageSize = 100;
         }
 
-        $pageSize = $args['pageSize'] ?? $defaultPageSize;
+        $pageSize = ($args['pageSize'] > $maxPageSize) ? $maxPageSize : $args['pageSize'];
 
         $query->setPageSize($pageSize);
 
         $fields = [];
         $additional = '';
 
-        $storeId = $this->storeManager->getStore()->getId();
 
         $activeAttributesCode = [];
         if (isset($args['filter'])) {
@@ -228,8 +234,10 @@ class Products implements ResolverInterface
 
         $args['filter_query'] = [
             self::$attributeMapping['store_id'] => $storeId,
-            'object_type' => 'product'
+            'object_type'                       => 'product'
         ];
+
+        $query->addFilter()
 
         return $this->getDataFromSolr($args, $fields, $additional, $activeAttributesCode);
     }
@@ -458,6 +466,7 @@ class Products implements ResolverInterface
         if ($code) {
             return $code . '=' . implode(',', $queryFilter);
         }
+
         return implode(',', $queryFilter);
     }
 
