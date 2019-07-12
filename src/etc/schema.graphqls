@@ -103,10 +103,14 @@ type ProductAttribute @doc(description: "Product attribute contains attribute co
 }
 
 type MsCategories {
-    items: [MsCategoryData] @doc(description: "An array of categories")
+    items: [MsCategory]
 }
 
-type MsCategoryData @typeResolver(class: "Magento\\CatalogGraphQl\\Model\\CategoryInterfaceTypeResolver") @doc(description: "CategoryInterface contains the full set of attributes that can be returned in a category search") {
+type MsCategory implements MsCategoryInterface @doc(description: "Category implementation") {
+
+}
+
+interface MsCategoryInterface @typeResolver(class: "Magento\\CatalogGraphQl\\Model\\CategoryInterfaceTypeResolver") @doc(description: "CategoryInterface contains the full set of attributes that can be returned in a category search") {
     id: Int @doc(description: "An ID that uniquely identifies the category")
     description: String @doc(description: "An optional description of the category")
     name: String @doc(description: "The display name of the category")
@@ -132,7 +136,7 @@ type MsCategoryData @typeResolver(class: "Magento\\CatalogGraphQl\\Model\\Catego
         sort: MsProductSortInput @doc(description: "Specifies which attribute to sort on, and whether to return the results in ascending or descending order.")
     ): MsProducts @doc(description: "The products query searches for products that match the criteria specified in the search and filter attributes")
     @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Products")
-    children: [MsCategoryData] @doc(description: "Category children array")
+    children: [MsCategory] @doc(description: "Category children array")
     children_count: Int @doc(description: "Category children count")
     solr_facets: [String] @doc(description: "The attribute to use for filters")
     seo_robots: String @doc(description: "Robots for meta data")
