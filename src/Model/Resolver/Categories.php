@@ -145,45 +145,41 @@ class Categories implements ResolverInterface
         $config = $this->configHelper->getConfiguration();
         $client = ClientFactory::create($config);
         $msCatalogForCategory = $client->getQuery();
+        $msCatalogForCategory->setPageStart(0);
 
         $msCatalogForCategory->addFilters([
             [
                 $this->queryHelper->getFieldByAttributeCode(
-                        $client->getField('store_id', $storeId),
-                        'catalog_category'
+                        'store_id', $storeId, 'catalog_category'
                 )
             ],
             [
                 $this->queryHelper->getFieldByAttributeCode(
-                    $client->getField('object_type', 'category'),
-                    'catalog_category'
+                    'object_type', 'category', 'catalog_category'
                 )
             ],
         ]);
 
         if ($level) {
-            $msCatalogForCategory->addFilter(
-                $this->queryHelper
-                    ->getFieldByAttributeCode('level', 'catalog_category'),
-                $level
-            );
+            $msCatalogForCategory->addFilter($this->queryHelper
+                ->getFieldByAttributeCode('level', $level, 'catalog_category'));
             $msCatalogForCategory->setPageSize(1000);
             $msCatalogForCategory->addFieldsToSelect([
-                'level', 'url', 'name', 'position', 'parent_id', 'store_id', 'object_id'
+                $this->queryHelper->getFieldByAttributeCode('level', null, 'catalog_category'),
+                $this->queryHelper->getFieldByAttributeCode('url', null, 'catalog_category'),
+                $this->queryHelper->getFieldByAttributeCode('name', null, 'catalog_category'),
+                $this->queryHelper->getFieldByAttributeCode('position', null, 'catalog_category'),
+                $this->queryHelper->getFieldByAttributeCode('parent_id', null, 'catalog_category'),
+                $this->queryHelper->getFieldByAttributeCode('store_id', null, 'catalog_category'),
+                $this->queryHelper->getFieldByAttributeCode('object_id', null, 'catalog_category'),
             ]);
         } elseif ($children) {
-            $msCatalogForCategory->addFilter(
-                $this->queryHelper
-                    ->getFieldByAttributeCode('parent_id', 'catalog_category'),
-                $categoryIds
-            );
+            $msCatalogForCategory->addFilter($this->queryHelper
+                ->getFieldByAttributeCode('parent_id', $categoryIds, 'catalog_category'));
             $msCatalogForCategory->setPageSize(100);
         } elseif ($categoryIds) {
-            $msCatalogForCategory->addFilter(
-                $this->queryHelper
-                    ->getFieldByAttributeCode('object_id', 'catalog_category'),
-                $categoryIds
-            );
+            $msCatalogForCategory->addFilter($this->queryHelper
+                ->getFieldByAttributeCode('object_id', $categoryIds, 'catalog_category'));
             $msCatalogForCategory->setPageSize(count($ids));
         }
 
