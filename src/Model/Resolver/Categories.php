@@ -148,11 +148,12 @@ class Categories implements ResolverInterface
         $msCatalogForCategory->setPageStart(0);
 
         $msCatalogForCategory->addFilters([
-            [
-                $this->queryHelper->getFieldByAttributeCode(
-                        'store_id', $storeId, 'catalog_category'
-                )
-            ],
+//            [
+//                $this->queryHelper->getFieldByAttributeCode(
+//                        'store_id', $storeId, 'catalog_category'
+//                )
+//            ],
+            /** @todo comment store_id out when there will be store_id_i field in data  */
             [
                 $this->queryHelper->getFieldByAttributeCode(
                     'object_type', 'category', 'catalog_category'
