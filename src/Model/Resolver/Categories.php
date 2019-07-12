@@ -6,7 +6,6 @@ namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
 use Exception;
 use G4NReact\MsCatalog\Client\ClientFactory;
 use G4NReact\MsCatalog\Document;
-use G4NReact\MsCatalog\Query;
 use G4NReact\MsCatalogMagento2\Helper\Config as ConfigHelper;
 use G4NReact\MsCatalogMagento2\Helper\Query as QueryHelper;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Parser;
@@ -46,12 +45,12 @@ class Categories implements ResolverInterface
     /**
      * @var ConfigHelper
      */
-    protected $msCatalogMagento2Helper;
+    protected $configHelper;
 
     /**
      * @var QueryHelper
      */
-    protected $msCatalogQueryHelper;
+    protected $queryHelper;
 
     /**
      * @var array
@@ -66,22 +65,23 @@ class Categories implements ResolverInterface
     ];
 
     /**
-     * Categories constructor.
+     * Categories constructor
+     *
      * @param DeploymentConfig $deploymentConfig
      * @param StoreManagerInterface $storeManager
-     * @param ConfigHelper $msCatalogMagento2Helper
-     * @param QueryHelper $msCatalogQueryHelper
+     * @param ConfigHelper $configHelper
+     * @param QueryHelper $queryHelper
      */
     public function __construct(
         DeploymentConfig $deploymentConfig,
         StoreManagerInterface $storeManager,
-        ConfigHelper $msCatalogMagento2Helper,
-        QueryHelper $msCatalogQueryHelper
+        ConfigHelper $configHelper,
+        QueryHelper $queryHelper
     ) {
         $this->deploymentConfig = $deploymentConfig;
         $this->storeManager = $storeManager;
-        $this->msCatalogMagento2Helper = $msCatalogMagento2Helper;
-        $this->msCatalogQueryHelper = $msCatalogQueryHelper;
+        $this->configHelper = $configHelper;
+        $this->queryHelper = $queryHelper;
     }
 
     /**
@@ -115,15 +115,15 @@ class Categories implements ResolverInterface
             throw new GraphQlInputException(__('"id or level for category should be specified'));
         }
 
-        $solrCategories = [];
+        $categories = [];
         $categoryIds = $this->getCategoryIds($args);
         $level = $this->getLevel($args);
         if ($level || count($categoryIds)) {
-            $solrCategories = $this->getCategoryFromSolr($categoryIds, $level, isset($args['children']) ? true : false);
+            $categories = $this->getCategoryFromSearchEngine($categoryIds, $level, isset($args['children']) ? true : false);
         }
 
-        if (!empty($solrCategories)) {
-            return ['items' => $solrCategories];
+        if (!empty($categories)) {
+            return ['items' => $categories];
         }
 
         return new Document();
@@ -137,50 +137,33 @@ class Categories implements ResolverInterface
      * @throws NoSuchEntityException
      * @throws Exception
      */
-    public function getCategoryFromSolr(array $ids = [], $level = null, $children = false)
+    public function getCategoryFromSearchEngine(array $ids = [], $level = null, $children = false)
     {
         $categoryIds = implode(',', $ids);
         $categories = [];
-
         $storeId = $this->storeManager->getStore()->getId();
-
-//        $params['filter_query'] = [
-//            self::$attributeMapping['store_id'] => $storeId,
-//            'object_type' => 'category',
-//        ];
-//        if ($level) {
-//            $params['filter'] = [self::$attributeMapping['level'] . '=' . implode(',', $level)];
-//            $params['pageSize'] = 1000;
-//            $params['fields_to_fetch'] = self::$attributeMapping;
-//            $params['fields_to_fetch'][] = ['object_id'];
-//        } elseif ($children) {
-//            $params['filter'] = [self::$attributeMapping['parent_id'] . '=' . $categoryIds];
-//            $params['pageSize'] = 100;
-//        } elseif ($categoryIds) {
-//            $params['filter'] = ['object_id=' . $categoryIds];
-//            $params['pageSize'] = count($ids);
-//        }
-
-        $config = $this->msCatalogMagento2Helper->getConfiguration();
+        $config = $this->configHelper->getConfiguration();
         $client = ClientFactory::create($config);
         $msCatalogForCategory = $client->getQuery();
 
         $msCatalogForCategory->addFilters([
             [
-                $this->msCatalogQueryHelper
-                    ->getFieldByAttributeCode('store_id', 'catalog_category'),
-                $storeId
+                $this->queryHelper->getFieldByAttributeCode(
+                        $client->getField('store_id', $storeId),
+                        'catalog_category'
+                )
             ],
             [
-                $this->msCatalogQueryHelper
-                    ->getFieldByAttributeCode('object_type', 'catalog_category'),
-                'category'
+                $this->queryHelper->getFieldByAttributeCode(
+                    $client->getField('object_type', 'category'),
+                    'catalog_category'
+                )
             ],
         ]);
 
         if ($level) {
             $msCatalogForCategory->addFilter(
-                $this->msCatalogQueryHelper
+                $this->queryHelper
                     ->getFieldByAttributeCode('level', 'catalog_category'),
                 $level
             );
@@ -190,14 +173,14 @@ class Categories implements ResolverInterface
             ]);
         } elseif ($children) {
             $msCatalogForCategory->addFilter(
-                $this->msCatalogQueryHelper
+                $this->queryHelper
                     ->getFieldByAttributeCode('parent_id', 'catalog_category'),
                 $categoryIds
             );
             $msCatalogForCategory->setPageSize(100);
         } elseif ($categoryIds) {
             $msCatalogForCategory->addFilter(
-                $this->msCatalogQueryHelper
+                $this->queryHelper
                     ->getFieldByAttributeCode('object_id', 'catalog_category'),
                 $categoryIds
             );
@@ -208,8 +191,6 @@ class Categories implements ResolverInterface
             [self::$attributeMapping['level'], 'ASC'],
             [self::$attributeMapping['position'], 'ASC'],
         ]);
-
-//        $msCatalogForCategory->setSort([[self::$attributeMapping['level'] => 'ASC'], [self::$attributeMapping['position'] => 'ASC']]);
 
         $categoryResult = $msCatalogForCategory->getResponse();
 
