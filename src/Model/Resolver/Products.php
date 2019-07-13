@@ -3,11 +3,10 @@ declare(strict_types=1);
 
 namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
 
-use Exception;
 use G4NReact\MsCatalog\Client\ClientFactory;
 use G4NReact\MsCatalog\Document;
-use G4NReact\MsCatalog\Query;
 use G4NReact\MsCatalogMagento2\Helper\Config as ConfigHelper;
+use G4NReact\MsCatalogMagento2\Helper\Query as QueryHelper;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Parser;
 use G4NReact\MsCatalogSolr\Response;
 use Magento\Framework\App\CacheInterface;
@@ -20,7 +19,6 @@ use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Store\Model\StoreManagerInterface;
 use Psr\Log\LoggerInterface;
-use G4NReact\MsCatalog\Document\Field;
 
 /**
  * Class Products
@@ -72,6 +70,11 @@ class Products implements ResolverInterface
      * @var ConfigHelper
      */
     protected $configHelper;
+
+    /**
+     * @var ConfigHelper
+     */
+    protected $queryHelper;
 
     /**
      * @var array
@@ -132,6 +135,7 @@ class Products implements ResolverInterface
      * @param Json $serializer
      * @param LoggerInterface $logger
      * @param ConfigHelper $configHelper
+     * @param QueryHelper $queryHelper
      */
     public function __construct(
         CacheInterface $cache,
@@ -139,15 +143,16 @@ class Products implements ResolverInterface
         StoreManagerInterface $storeManager,
         Json $serializer,
         LoggerInterface $logger,
-        ConfigHelper $configHelper
-    )
-    {
+        ConfigHelper $configHelper,
+        QueryHelper $queryHelper
+    ) {
         $this->cache = $cache;
         $this->deploymentConfig = $deploymentConfig;
         $this->storeManager = $storeManager;
         $this->serializer = $serializer;
         $this->logger = $logger;
         $this->configHelper = $configHelper;
+        $this->queryHelper = $queryHelper;
     }
 
     /**
@@ -159,8 +164,7 @@ class Products implements ResolverInterface
         ResolveInfo $info,
         array $value = null,
         array $args = null
-    )
-    {
+    ) {
         if (!isset($args['search']) && !isset($args['filter'])) {
             throw new GraphQlInputException(
                 __("'search' or 'filter' input argument is required.")
@@ -168,12 +172,13 @@ class Products implements ResolverInterface
         }
 
         $client = ClientFactory::getInstance($this->configHelper->getConfiguration());
+
         $query = $client->getQuery();
 
         $storeId = $this->storeManager->getStore()->getId();
         $query->addFilters([
-            new Document\Field('store_id', $storeId),
-            new Document\Field('object_type', 'product')
+            [$this->queryHelper->getFieldByAttributeCode('store_id', $storeId, 'catalog_category')],
+            [$this->queryHelper->getFieldByAttributeCode('object_type', 'product', 'catalog_category')],
         ]);
 
         $this->resolveInfo = $info->getFieldSelection(3);
@@ -198,20 +203,9 @@ class Products implements ResolverInterface
             $maxPageSize = 100;
         }
 
-        $pageSize = ($args['pageSize'] > $maxPageSize) ? $maxPageSize : $args['pageSize'];
+        $pageSize = (isset($args['pageSize']) && ($args['pageSize'] < $maxPageSize)) ? $args['pageSize'] : $maxPageSize;
 
         $query->setPageSize($pageSize);
-
-        $fields = [];
-        $additional = '';
-
-
-        $activeAttributesCode = [];
-        if (isset($args['filter'])) {
-            if (isset($args['filter']['attributes']) && isset($args['facet']) && $args['facet']) {
-                $activeAttributesCode = $this->getActiveAttributesCode($args['filter']['attributes']) ?? '';
-            }
-        }
 
         if (isset($args['search']) && $args['search']) {
             $searchText = Parser::parseSearchText($args['search']);
@@ -224,7 +218,6 @@ class Products implements ResolverInterface
             if (!isset($args['sort'])) {
                 $args['sort'] = ['sort_by' => 'score', 'sort_order' => 'desc'];
             }
-
         } elseif (isset($args['filter'])) {
             $args['filter'] = $this->getFilters($args['filter']);
             if (!isset($args['sort'])) {
@@ -237,78 +230,11 @@ class Products implements ResolverInterface
             'object_type'                       => 'product'
         ];
 
-        $query->addFilter()
+        $productResult = $query->getResponse();
 
-        return $this->getDataFromSolr($args, $fields, $additional, $activeAttributesCode);
-    }
+        $products = $this->prepareResultData($productResult);
 
-    /**
-     * @param $options
-     * @param $searchFields
-     * @param $additional
-     * @param $activeAttributesCode
-     * @return array
-     * @throws Exception
-     */
-    public function getDataFromSolr($options, $searchFields, $additional, $activeAttributesCode)
-    {
-        $config = $this->configHelper->getConfiguration();
-
-        // @ToDo: Temporarily solution - change this ASAP
-        $msCatalog = new Query('solr', $config, $options);
-        $msCatalog->setSort($this->getSortParam($options['sort']));
-        $msCatalog->setSearchFields($searchFields);
-
-        if ($additional) {
-            $msCatalog->setSearchAdditionalInfo($additional);
-        }
-
-        $result = $msCatalog->getResult();
-        $resultFacets = $this->parseAttributeCode($result->getFacets());
-        $resultStats = $this->parseAttributeCode($result->getStats());
-
-        if (!empty($activeAttributesCode)) {
-            foreach ($activeAttributesCode as $attributeCode) {
-                $optionsForFilter = $options;
-                foreach ($optionsForFilter['filter'] as $key => $optionFilter) {
-                    if (is_array($optionFilter)) {
-                        if (isset($optionFilter[$attributeCode])) {
-                            unset($optionsForFilter['filter'][$key][$attributeCode]);
-                        }
-                    } else {
-                        if ($key = $attributeCode) {
-                            unset($optionsForFilter['filter'][$attributeCode]);
-                        }
-                    }
-                }
-
-                $optionsForFilter['pageSize'] = 0;
-                $optionsForFilter['currentPage'] = 0;
-                $optionsForFilter['fields_to_fetch'][] = 'id';
-                $msCatalogParent = new Query('solr', $config, $optionsForFilter);
-                $msCatalogParent->setSearchFields($searchFields);
-
-                if ($additional) {
-                    $msCatalogParent->setSearchAdditionalInfo($additional);
-                }
-
-                $parentResult = $msCatalogParent->getResult();
-                $parentFacets = $this->parseAttributeCode($parentResult->getFacets());
-                $parentStats = $this->parseAttributeCode($parentResult->getStats());
-
-                if (isset($parentFacets[$attributeCode])) {
-                    $resultFacets[$attributeCode] = $parentFacets[$attributeCode];
-                }
-                if ($attributeCode == 'price' && ($values = $parentStats[$attributeCode]['values'] ?? null)) {
-                    $resultStats[$attributeCode]['values'] = $values;
-                }
-            }
-        }
-
-        $result->setFacets($resultFacets);
-        $result->setStats($resultStats);
-
-        return $this->prepareResultData($result, $options['id_type'] ?? '', $options['search'] ?? false);
+        return $products;
     }
 
     /**
@@ -317,7 +243,7 @@ class Products implements ResolverInterface
      * @param $forSearch
      * @return array
      */
-    public function prepareResultData($result, $idType, $forSearch)
+    public function prepareResultData($result, $idType = 'sku', $forSearch = false)
     {
         $products = $this->getProducts($result->getDocumentsCollection(), $idType, $forSearch);
 
@@ -468,31 +394,6 @@ class Products implements ResolverInterface
         }
 
         return implode(',', $queryFilter);
-    }
-
-    /**
-     * @param $sort
-     * @return array
-     */
-    private function getSortParam($sort)
-    {
-        $sort = Parser::parseFilters($sort);
-        $currentSortField = isset($sort['sort_by']) ? $sort['sort_by'] : 'popularity';
-        $currentSortDirection = isset($sort['sort_order']) ? $sort['sort_order'] : 'DESC';
-
-        if (isset(self::$sortMapping[$currentSortField])) {
-            $currentSortField = self::$sortMapping[$currentSortField];
-            if (!in_array($currentSortDirection, ['ASC', 'DESC'])) {
-                $currentSortDirection = 'DESC';
-            }
-        } else {
-            $currentSortField = self::$sortMapping['popularity'];
-            $currentSortDirection = 'DESC';
-        }
-
-        $sortBy[] = [$currentSortField => $currentSortDirection];
-
-        return $sortBy;
     }
 
     /**
