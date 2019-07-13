@@ -61,7 +61,7 @@ type MsProductData @doc(description: "The ProductInterface contains attributes t
     small_image: String @doc(description: "Path to thumbnail small image")
     image: String @doc(description: "Path to thumbnail image")
     swatch_image: String @doc(description: "Path to thumbnail swatch image")
-    media_gallery: String @doc(description: "PRoduct media gallery")
+    media_gallery: String @doc(description: "Product media gallery")
     attributes: [ProductAttribute] @doc(description: "Product attributes")
     category_ids: [Int] @doc(description: "Product category ids")
 }
