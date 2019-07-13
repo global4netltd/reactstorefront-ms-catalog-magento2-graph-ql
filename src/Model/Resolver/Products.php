@@ -172,6 +172,7 @@ class Products implements ResolverInterface
         }
 
         $client = ClientFactory::getInstance($this->configHelper->getConfiguration());
+
         $query = $client->getQuery();
 
         $storeId = $this->storeManager->getStore()->getId();
@@ -205,16 +206,6 @@ class Products implements ResolverInterface
         $pageSize = (isset($args['pageSize']) && ($args['pageSize'] < $maxPageSize)) ? $args['pageSize'] : $maxPageSize;
 
         $query->setPageSize($pageSize);
-
-        $fields = [];
-        $additional = '';
-
-        $activeAttributesCode = [];
-        if (isset($args['filter'])) {
-            if (isset($args['filter']['attributes']) && isset($args['facet']) && $args['facet']) {
-                $activeAttributesCode = $this->getActiveAttributesCode($args['filter']['attributes']) ?? '';
-            }
-        }
 
         if (isset($args['search']) && $args['search']) {
             $searchText = Parser::parseSearchText($args['search']);
@@ -403,31 +394,6 @@ class Products implements ResolverInterface
         }
 
         return implode(',', $queryFilter);
-    }
-
-    /**
-     * @param $sort
-     * @return array
-     */
-    private function getSortParam($sort)
-    {
-        $sort = Parser::parseFilters($sort);
-        $currentSortField = isset($sort['sort_by']) ? $sort['sort_by'] : 'popularity';
-        $currentSortDirection = isset($sort['sort_order']) ? $sort['sort_order'] : 'DESC';
-
-        if (isset(self::$sortMapping[$currentSortField])) {
-            $currentSortField = self::$sortMapping[$currentSortField];
-            if (!in_array($currentSortDirection, ['ASC', 'DESC'])) {
-                $currentSortDirection = 'DESC';
-            }
-        } else {
-            $currentSortField = self::$sortMapping['popularity'];
-            $currentSortDirection = 'DESC';
-        }
-
-        $sortBy[] = [$currentSortField => $currentSortDirection];
-
-        return $sortBy;
     }
 
     /**
