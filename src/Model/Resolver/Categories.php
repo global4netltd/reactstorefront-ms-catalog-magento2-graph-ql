@@ -10,6 +10,8 @@ use G4NReact\MsCatalogMagento2\Helper\Config as ConfigHelper;
 use G4NReact\MsCatalogMagento2\Helper\Query as QueryHelper;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Parser;
 use Magento\Framework\App\DeploymentConfig;
+use Magento\Framework\Event\Manager as EventManager;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Exception\GraphQlInputException;
@@ -53,16 +55,9 @@ class Categories implements ResolverInterface
     protected $queryHelper;
 
     /**
-     * @var array
+     * @var EventManager
      */
-    public static $attributeMapping = [
-        'level'     => 'level_s_ni',
-        'url'       => 'url_s_ni',
-        'name'      => 'name_s',
-        'position'  => 'position_s_ni',
-        'parent_id' => 'parent_id_s',
-        'store_id'  => 'store_id_s',
-    ];
+    protected $eventManager;
 
     /**
      * Categories constructor
@@ -71,17 +66,20 @@ class Categories implements ResolverInterface
      * @param StoreManagerInterface $storeManager
      * @param ConfigHelper $configHelper
      * @param QueryHelper $queryHelper
+     * @param EventManager $eventManager
      */
     public function __construct(
         DeploymentConfig $deploymentConfig,
         StoreManagerInterface $storeManager,
         ConfigHelper $configHelper,
-        QueryHelper $queryHelper
+        QueryHelper $queryHelper,
+        EventManager $eventManager
     ) {
         $this->deploymentConfig = $deploymentConfig;
         $this->storeManager = $storeManager;
         $this->configHelper = $configHelper;
         $this->queryHelper = $queryHelper;
+        $this->eventManager = $eventManager;
     }
 
     /**
@@ -116,10 +114,11 @@ class Categories implements ResolverInterface
         }
 
         $categories = [];
+        $queryFields = $this->parseQueryFields($info);
         $categoryIds = $this->getCategoryIds($args);
         $level = $this->getLevel($args);
         if ($level || count($categoryIds)) {
-            $categories = $this->getCategoryFromSearchEngine($categoryIds, $level, isset($args['children']) ? true : false);
+            $categories = $this->getCategoryFromSearchEngine($categoryIds, $level, isset($args['children']) ? true : false, $queryFields);
         }
 
         if (!empty($categories)) {
@@ -130,14 +129,32 @@ class Categories implements ResolverInterface
     }
 
     /**
+     * @param ResolveInfo $info
+     * @return array
+     */
+    public function parseQueryFields(ResolveInfo $info)
+    {
+        $queryFields = $info->getFieldSelection(3)['items'] ?? [];
+        foreach ($queryFields as $name => $value) {
+            if (is_array($value)) {
+                unset($queryFields[$name]);
+                continue;
+            }
+        }
+
+        return $queryFields;
+    }
+
+    /**
      * @param array $ids
      * @param null $level
      * @param bool $children
+     * @param array $queryFields
      * @return array
      * @throws NoSuchEntityException
-     * @throws Exception
+     * @throws LocalizedException
      */
-    public function getCategoryFromSearchEngine(array $ids = [], $level = null, $children = false)
+    public function getCategoryFromSearchEngine(array $ids = [], $level = null, $children = false, $queryFields = [])
     {
         $categoryIds = implode(',', $ids);
         $categories = [];
@@ -148,12 +165,11 @@ class Categories implements ResolverInterface
         $msCatalogForCategory->setPageStart(0);
 
         $msCatalogForCategory->addFilters([
-//            [
-//                $this->queryHelper->getFieldByAttributeCode(
-//                        'store_id', $storeId, 'catalog_category'
-//                )
-//            ],
-            /** @todo comment store_id out when there will be store_id_i field in data  */
+            [
+                $this->queryHelper->getFieldByAttributeCode(
+                        'store_id', $storeId, 'catalog_category'
+                )
+            ],
             [
                 $this->queryHelper->getFieldByAttributeCode(
                     'object_type', 'category', 'catalog_category'
@@ -165,35 +181,33 @@ class Categories implements ResolverInterface
             $msCatalogForCategory->addFilter($this->queryHelper
                 ->getFieldByAttributeCode('level', $level, 'catalog_category'));
             $msCatalogForCategory->setPageSize(1000);
-            $msCatalogForCategory->addFieldsToSelect([
-                $this->queryHelper->getFieldByAttributeCode('level', null, 'catalog_category'),
-                $this->queryHelper->getFieldByAttributeCode('url', null, 'catalog_category'),
-                $this->queryHelper->getFieldByAttributeCode('name', null, 'catalog_category'),
-                $this->queryHelper->getFieldByAttributeCode('position', null, 'catalog_category'),
-                $this->queryHelper->getFieldByAttributeCode('parent_id', null, 'catalog_category'),
-                $this->queryHelper->getFieldByAttributeCode('store_id', null, 'catalog_category'),
-                $this->queryHelper->getFieldByAttributeCode('object_id', null, 'catalog_category'),
-            ]);
+            $fieldsToSelect = [];
+            foreach ($queryFields as $attributeCode => $value) {
+                $fieldsToSelect[] = $this->queryHelper->getFieldByAttributeCode($attributeCode, null, 'catalog_category');
+            }
+            $msCatalogForCategory->addFieldsToSelect($fieldsToSelect);
         } elseif ($children) {
             $msCatalogForCategory->addFilter($this->queryHelper
                 ->getFieldByAttributeCode('parent_id', $categoryIds, 'catalog_category'));
             $msCatalogForCategory->setPageSize(100);
         } elseif ($categoryIds) {
             $msCatalogForCategory->addFilter($this->queryHelper
-                ->getFieldByAttributeCode('object_id', $categoryIds, 'catalog_category'));
+                ->getFieldByAttributeCode('id', $categoryIds, 'catalog_category'));
             $msCatalogForCategory->setPageSize(count($ids));
         }
 
         $msCatalogForCategory->setSort([
-            [self::$attributeMapping['level'], 'ASC'],
-            [self::$attributeMapping['position'], 'ASC'],
+            [$this->queryHelper
+                ->getFieldByAttributeCode('level', $categoryIds, 'catalog_category'), 'ASC'],
+            [$this->queryHelper
+                ->getFieldByAttributeCode('position', $categoryIds, 'catalog_category'), 'ASC'],
         ]);
 
         $categoryResult = $msCatalogForCategory->getResponse();
 
         if ($categoryResult->getNumFound()) {
             foreach ($categoryResult->getDocumentsCollection() as $category) {
-                $solrCategory = $this->prepareCategoryResult($category);
+                $solrCategory = $this->prepareCategoryResult($category, $queryFields);
                 if ($level) {
                     if ($solrCategory['parent_id'] > 2) {
                         $categories[$solrCategory['parent_id']]['children'][$solrCategory['id']] = $solrCategory;
@@ -234,38 +248,23 @@ class Categories implements ResolverInterface
 
     /**
      * @param Document $categoryData
+     * @param array $queryFields
      * @return array
-     * @throws NoSuchEntityException
      */
-    public function prepareCategoryResult(Document $categoryData)
+    public function prepareCategoryResult(Document $categoryData, array $queryFields = [])
     {
+        $this->eventManager->dispatch('prepare_mscategory_resolver_result_before', ['categoryData' => $categoryData]);
+
         if (empty($categoryData)) {
             return [];
         }
 
-        $urlCategory = parse_url($categoryData->getFieldValue('url') ?: '');
-        $urlImage = parse_url($categoryData->getFieldValue('image') ?: '');
+        $data = [];
+        foreach ($queryFields as $fieldName => $value) {
+            $data[$fieldName] = $this->parseToString($categoryData->getFieldValue($fieldName));
+        }
 
-        $data = [
-            'id'               => $this->parseToString($categoryData->getFieldValue('object_id')),
-            'name'             => $this->parseToString($categoryData->getFieldValue('name')),
-            'description'      => $this->parseToString($categoryData->getFieldValue('description')),
-            'meta_title'       => $this->parseToString($categoryData->getFieldValue('meta_title')),
-            'meta_description' => $this->parseToString($categoryData->getFieldValue('meta_description')),
-            'meta_keywords'    => $this->parseToString($categoryData->getFieldValue('meta_keywords')),
-            'children_count'   => $this->parseToString($categoryData->getFieldValue('children_count')),
-            'path'             => $this->parseToString($categoryData->getFieldValue('path')),
-            'level'            => $this->parseToString($categoryData->getFieldValue('level')),
-            'position'         => $this->parseToString($categoryData->getFieldValue('position')),
-            'parent_id'        => $this->parseToString($categoryData->getFieldValue('parent_id')),
-            'display_mode'     => $this->parseToString($categoryData->getFieldValue('display_mode')),
-            'image'            => $urlImage['path'] ?? '',
-            'url'              => $urlCategory['path'] ?? '',
-            'url_key'          => $this->parseToString($categoryData->getFieldValue('url_key')),
-            'url_path'         => $this->parseUrl($categoryData->getFieldValue('url_path')),
-            'seo_robots'       => $this->parseToString($categoryData->getFieldValue('seo_robots')),
-            'object_type'      => self::CATEGORY_OBJECT_TYPE
-        ];
+        $this->eventManager->dispatch('prepare_mscategory_resolver_result_after', ['categoryData' => $categoryData]);
 
         return $data;
     }
