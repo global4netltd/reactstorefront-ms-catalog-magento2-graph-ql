@@ -153,6 +153,7 @@ class Categories implements ResolverInterface
      * @return array
      * @throws NoSuchEntityException
      * @throws LocalizedException
+     * @throws Exception
      */
     public function getCategoryFromSearchEngine(array $ids = [], $level = null, $children = false, $queryFields = [])
     {
