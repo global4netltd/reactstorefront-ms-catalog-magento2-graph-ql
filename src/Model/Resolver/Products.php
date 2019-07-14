@@ -218,17 +218,7 @@ class Products implements ResolverInterface
             if (!isset($args['sort'])) {
                 $args['sort'] = ['sort_by' => 'score', 'sort_order' => 'desc'];
             }
-        } elseif (isset($args['filter'])) {
-            $args['filter'] = $this->getFilters($args['filter']);
-            if (!isset($args['sort'])) {
-                $args['sort'] = ['sort_by' => 'popularity', 'sort_order' => 'desc'];
-            }
         }
-
-        $args['filter_query'] = [
-            self::$attributeMapping['store_id'] => $storeId,
-            'object_type'                       => 'product'
-        ];
 
         $productResult = $query->getResponse();
 
@@ -466,15 +456,6 @@ class Products implements ResolverInterface
     public function parseToString($field)
     {
         return is_array($field) ? implode(', ', $field) : $field;
-    }
-
-    /**
-     * @param $attributeCode
-     * @return bool|string
-     */
-    public function getSolrAttributeCode($attributeCode)
-    {
-        return $attributeCode;
     }
 
     /**
