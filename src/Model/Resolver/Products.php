@@ -11,6 +11,7 @@ use G4NReact\MsCatalogMagento2GraphQl\Helper\Parser;
 use G4NReact\MsCatalogSolr\Response;
 use Magento\Framework\App\CacheInterface;
 use Magento\Framework\App\DeploymentConfig;
+use Magento\Framework\Event\Manager as EventManager;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Exception\GraphQlInputException;
@@ -75,6 +76,11 @@ class Products implements ResolverInterface
      * @var ConfigHelper
      */
     protected $queryHelper;
+
+    /**
+     * @var EventManager
+     */
+    protected $eventManager;
 
     /**
      * @var array
@@ -144,7 +150,8 @@ class Products implements ResolverInterface
         Json $serializer,
         LoggerInterface $logger,
         ConfigHelper $configHelper,
-        QueryHelper $queryHelper
+        QueryHelper $queryHelper,
+        EventManager $eventManager
     ) {
         $this->cache = $cache;
         $this->deploymentConfig = $deploymentConfig;
@@ -153,6 +160,7 @@ class Products implements ResolverInterface
         $this->logger = $logger;
         $this->configHelper = $configHelper;
         $this->queryHelper = $queryHelper;
+        $this->eventManager = $eventManager;
     }
 
     /**
@@ -174,6 +182,8 @@ class Products implements ResolverInterface
         $client = ClientFactory::getInstance($this->configHelper->getConfiguration());
 
         $query = $client->getQuery();
+
+        $queryFields = $this->parseQueryFields($info);
 
         $storeId = $this->storeManager->getStore()->getId();
         $query->addFilters([
@@ -233,9 +243,9 @@ class Products implements ResolverInterface
      * @param $forSearch
      * @return array
      */
-    public function prepareResultData($result, $idType = 'sku', $forSearch = false)
+    public function prepareResultData($result)
     {
-        $products = $this->getProducts($result->getDocumentsCollection(), $idType, $forSearch);
+        $products = $this->getProducts($result->getDocumentsCollection());
 
         $data = [
             'total_count' => $result->getNumFound(),
@@ -392,40 +402,24 @@ class Products implements ResolverInterface
      * @param bool $forSearch
      * @return array
      */
-    public function getProducts($documentCollection, $idType, $forSearch = false)
+    public function getProducts($documentCollection)
     {
         $products = [];
         $productIds = [];
 
         $i = 300; // default for product order in search
 
-        /** @var Document $document */
-        foreach ($documentCollection as $document) {
-            if ($idType) {
-                $productIds[$i] = $this->parseToString($document->getFieldValue($idType));
+        /** @var Document $productDocument */
+        foreach ($documentCollection as $productDocument) {
+
+            $this->eventManager->dispatch('prepare_msproduct_resolver_result_before', ['productDocument' => $productDocument]);
+
+            $productData = [];
+            foreach ($productDocument->getFields() as $field) {
+                $productData[$field->getName()] = $field->getValue();
             }
 
-            $url = parse_url($document->getFieldValue('url') ?: '');
-            $productData = [
-                'id'            => $this->parseToString($document->getFieldValue('object_id')),
-                'sku'           => $this->parseToString($document->getFieldValue('sku')),
-                'name'          => $this->parseToString($document->getFieldValue('name')),
-                'description'   => $this->parseToString($document->getFieldValue('description')),
-                'price'         => $this->parseToString($document->getFieldValue('price')),
-                'special_price' => $this->parseToString($document->getFieldValue('special_price')),
-                'type_id'       => $this->parseToString($document->getFieldValue('type_id')),
-                'url'           => $url['path'] ?? '',
-                'url_key'       => $this->parseUrl($document->getFieldValue('url_key')),
-                'thumbnail'     => $this->parseToString($document->getFieldValue('thumbnail')),
-                'small_image'   => $this->parseToString($document->getFieldValue('small_image')),
-                'image'         => $this->parseToString($document->getFieldValue('image')),
-                'swatch_image'  => $this->parseToString($document->getFieldValue('swatch_image')),
-                'media_gallery' => $this->parseToString($document->getFieldValue('media_gallery')),
-                'object_type'   => self::PRODUCT_OBJECT_TYPE,
-                'attributes'    => $this->prepareProductAttributes($document),
-//                'category_ids'  => $this->parseToString($document->getFieldValue('category_ids')),
-            ];
-
+            $this->eventManager->dispatch('prepare_msproduct_resolver_result_after', ['productData' => $productData]);
             $products[$i] = $productData;
             $i++;
         }
@@ -502,5 +496,22 @@ class Products implements ResolverInterface
         }
 
         return $attributes;
+    }
+
+    /**
+     * @param ResolveInfo $info
+     * @return array
+     */
+    public function parseQueryFields(ResolveInfo $info)
+    {
+        $queryFields = $info->getFieldSelection(3)['items'] ?? [];
+        foreach ($queryFields as $name => $value) {
+            if (is_array($value)) {
+                unset($queryFields[$name]);
+                continue;
+            }
+        }
+
+        return $queryFields;
     }
 }
