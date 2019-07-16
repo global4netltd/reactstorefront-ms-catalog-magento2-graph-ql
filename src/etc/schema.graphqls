@@ -63,7 +63,7 @@ type MsProductData @doc(description: "The ProductInterface contains attributes t
     swatch_image: String @doc(description: "Path to thumbnail swatch image")
     media_gallery: String @doc(description: "Product media gallery")
     attributes: [ProductAttribute] @doc(description: "Product attributes")
-    category_ids: [Int] @doc(description: "Product category ids")
+    category_id: [Int] @doc(description: "Product category ids")
 }
 
 type MsProducts @doc(description: "The Products object is the top-level object returned in a product search") {
