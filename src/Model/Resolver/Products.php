@@ -4,8 +4,12 @@ declare(strict_types=1);
 namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
 
 use Exception;
+use G4NReact\MsCatalog\AbstractResponse;
 use G4NReact\MsCatalog\Client\ClientFactory;
 use G4NReact\MsCatalog\Document;
+use G4NReact\MsCatalog\Query;
+use G4NReact\MsCatalog\QueryInterface;
+use G4NReact\MsCatalog\Response;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Parser;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
@@ -33,15 +37,6 @@ class Products extends AbstractResolver
      * @var String
      */
     const PRODUCT_OBJECT_TYPE = 'product';
-
-    /**
-     * @var array
-     */
-    public static $idTypeMapping = [
-        'ID'  => 'id',
-        'SKU' => 'sku',
-        'GID' => 'neonet_product_id'
-    ];
 
     /**
      * @var array
@@ -81,7 +76,8 @@ class Products extends AbstractResolver
         ResolveInfo $info,
         array $value = null,
         array $args = null
-    ) {
+    )
+    {
         if (!isset($args['search']) && !isset($args['filter'])) {
             throw new GraphQlInputException(
                 __("'search' or 'filter' input argument is required.")
@@ -90,20 +86,11 @@ class Products extends AbstractResolver
 
         $searchEngineConfig = $this->configHelper->getConfiguration();
         $searchEngineClient = ClientFactory::create($searchEngineConfig);
+
         $query = $searchEngineClient->getQuery();
-
-        $queryFields = $this->parseQueryFields($info);
-        $fieldsToSelect = [];
-        foreach ($queryFields as $attributeCode => $value) {
-            $fieldsToSelect[] = $this->queryHelper->getFieldByAttributeCode($attributeCode);
-        }
-        $query->addFieldsToSelect($fieldsToSelect);
-
-        $storeId = $this->storeManager->getStore()->getId();
-        $query->addFilters([
-            [$this->queryHelper->getFieldByAttributeCode('store_id', $storeId, 'catalog_category')],
-            [$this->queryHelper->getFieldByAttributeCode('object_type', 'product', 'catalog_category')],
-        ]);
+        $this->handleSort($query, $info);
+        $this->handleFilters($query, $args);
+        $this->handleFacets($query, $args);
 
         $this->resolveInfo = $info->getFieldSelection(3);
 
@@ -118,73 +105,185 @@ class Products extends AbstractResolver
                 $this->queryHelper->getFieldByAttributeCode('sku'),
             ]);
 
-            $args['id_type'] = self::$idTypeMapping['SKU'];
-
-            if (isset($args['filter']) && isset($args['filter']['id_type']) && ($idType = $args['filter']['id_type'])) {
-                $args['id_type'] = self::$idTypeMapping[$idType];
-                $query->addFieldsToSelect([
-                    $this->queryHelper->getFieldByAttributeCode($args['id_type']),
-                ]);
-            }
-        } elseif (isset($args['search']) && $args['search']) {
-            $maxPageSize = 3000;
         } else {
-            $maxPageSize = 100;
+            $this->handleFieldsToSelect($query, $info);
+            $maxPageSize = 3000;
         }
 
         $pageSize = (isset($args['pageSize']) && ($args['pageSize'] < $maxPageSize)) ? $args['pageSize'] : $maxPageSize;
-
         $query->setPageSize($pageSize);
 
         if (isset($args['search']) && $args['search']) {
             $searchText = Parser::parseSearchText($args['search']);
             $query->setQueryText($searchText);
-
-            if (isset($args['filter'])) {
-                $args['filter'] = $this->getFilters($args['filter']);
-            }
-
-            if (!isset($args['sort'])) {
-                $args['sort'] = ['sort_by' => 'score', 'sort_order' => 'desc'];
-            }
         }
 
-        if (isset($args['filter']) && $filters = $this->prepareFiltersByArgsFilter($args['filter'])) {
-            $query->addFilters($filters);
-        }
-        if (isset($args['sort']) && isset($args['sort']['sort_by'])) {
-            $sort = $this->prepareSortField($args['sort']['sort_by']);
-            $query->addSort($sort, $args['sort']['sort_order'] ?? 'ASC');
-        }
-        $productResult = $query->getResponse();
+        $response = $query->getResponse();
 
-        $products = $this->prepareResultData($productResult);
+        $products = $this->prepareResultData($response);
 
         return $products;
     }
 
+
     /**
-     * @param $result
+     * @param QueryInterface $query
+     * @param $args
+     */
+    public function handleFacets($query, $args)
+    {
+        /**
+         * @todo only for testing purpopse, eventually handle facets from category,
+         */
+        $query->addFacet(
+            $this->queryHelper->getFieldByAttributeCode('category_id')
+        );
+    }
+
+    /**
+     * @param QueryInterface $query
+     * @param $info
+     */
+    public function handleSort($query, $info)
+    {
+        $sortDir = 'ASC';
+
+        $sort = false;
+        if (isset($args['sort']) && isset($args['sort']['sort_by'])) {
+            $sort = $this->prepareSortField($args['sort']['sort_by']);
+        } elseif (isset($args['search']) && $args['search']) {
+            $sort = $this->prepareSortField('score');
+            $sortDir = 'DESC';
+        }
+
+        if ($sort) {
+            $query->addSort($sort, $sortDir);
+        }
+    }
+
+    /**
+     * @param QueryInterface $query
+     * @param $info
+     * @throws LocalizedException
+     */
+    public function handleFieldsToSelect($query, $info)
+    {
+        $queryFields = $this->parseQueryFields($info);
+
+        $fieldsToSelect = [];
+        foreach ($queryFields as $attributeCode => $value) {
+            $fieldsToSelect[] = $this->queryHelper->getFieldByAttributeCode($attributeCode);
+        }
+
+        $query->addFieldsToSelect($fieldsToSelect);
+    }
+
+    /**
+     * @param QueryInterface $query
+     * @param $args
+     * @throws LocalizedException
+     */
+    public function handleFilters($query, $args)
+    {
+//        if (isset($args['filter'])) {
+//            $args['filter'] = $this->getFilters($args['filter']);
+//        }
+
+        $query->addFilters([
+            [$this->queryHelper->getFieldByAttributeCode(
+                'store_id',
+                $this->storeManager->getStore()->getId(),
+                'catalog_category'
+            )],
+            [$this->queryHelper->getFieldByAttributeCode(
+                'object_type',
+                'product',
+                'catalog_category'
+            )],
+        ]);
+
+        if (isset($args['filter']) && ($filters = $this->prepareFiltersByArgsFilter($args['filter']))) {
+            $query->addFilters($filters);
+        }
+
+    }
+
+    /**
+     * @param AbstractResponse $result
      * @return array
      */
-    public function prepareResultData($result)
+    public function prepareResultData($response)
     {
-        $products = $this->getProducts($result->getDocumentsCollection());
-
+        $products = $this->getProducts($response->getDocumentsCollection());
         $data = [
-            'total_count' => $result->getNumFound(),
-            'items_ids' => $products['items_ids'],
-            'items' => $products['items'],
-            'page_info' => [
-                'page_size' => count($result->getDocumentsCollection()),
-                'current_page' => $result->getCurrentPage(),
-                'total_pages' => $result->getNumFound()
+            'total_count' => $response->getNumFound(),
+            'items_ids'   => $products['items_ids'],
+            'items'       => $products['items'],
+            'page_info'   => [
+                'page_size'    => count($response->getDocumentsCollection()),
+                'current_page' => $response->getCurrentPage(),
+                'total_pages'  => $response->getNumFound()
             ],
-            'facets' => $result->getFacets(),
-            'stats' => $result->getStats()
+            'facets'      => $this->prepareFacets($response->getFacets()),
+            'stats'       => $response->getStats()
         ];
 
         return $data;
+    }
+
+    /**
+     * @param array $facets
+     * @return array
+     */
+    public function prepareFacets($facets)
+    {
+        $preparedFacets = [];
+
+        foreach ($facets as $field => $values) {
+
+            $preparedValues = [];
+
+            $key = false;
+            foreach ($values as $valueId => $count) {
+                $preparedValues[] = [
+                    'value_id'   => $valueId,
+                    'count' => $count
+                ];
+            }
+
+            $preparedFacets[] = [
+                'code'   => $field,
+                'values' => $preparedValues
+            ];
+        }
+
+        return $preparedFacets;
+    }
+
+    /**
+     * @param $facets
+     * @return array
+     * @throws NoSuchEntityException
+     */
+    public function prepareFacetsAndStats($facets)
+    {
+        $solrFacets = [];
+
+        foreach ($facets as $key => $facet) {
+            if ($key === "virtual_category_params") {
+                $solrFacets['virtual_category_params'] = $this->prepareVirtualCategoryParamsAsFilter($facet);
+            } else {
+                if ($attributeCode = $this->getSolrAttributeCode($facet)) {
+                    if (strpos($attributeCode, '_facet') !== false) {
+                        $solrFacets['facet'][] = $attributeCode;
+                    } else {
+                        $solrFacets['stat'][] = $attributeCode;
+                    }
+                }
+            }
+        }
+
+        return $solrFacets;
     }
 
     /**
@@ -338,6 +437,9 @@ class Products extends AbstractResolver
 
             $productData = [];
             foreach ($productDocument->getFields() as $field) {
+                if ($field->getName() == 'sku') {
+                    $productIds[] = $field->getValue();
+                }
                 $productData[$field->getName()] = $field->getValue();
             }
 
@@ -447,9 +549,35 @@ class Products extends AbstractResolver
     {
         $preparedFilters = [];
         foreach ($filters as $key => $filter) {
-            $field = $this->queryHelper->getFieldByAttributeCode($key, $this->prepareFilterValue($filter));
 
-            $preparedFilters[] = [$field];
+            if ($key === 'attributes') {
+                $preparedFilters = array_merge($preparedFilters, $this->prepareAttributes($filter));
+            } else {
+                $field = $this->queryHelper->getFieldByAttributeCode($key, $this->prepareFilterValue($filter));
+                $preparedFilters[] = [$field];
+            }
+        }
+
+        return $preparedFilters;
+    }
+
+    /**
+     * @param $attributes
+     */
+    public function prepareAttributes($attributes)
+    {
+        $preparedFilters = [];
+
+        foreach ($attributes as $attribute => $value) {
+            $filterData = explode('=', $value);
+            if (count($filterData) < 2) {
+                continue;
+            }
+            if ($field = $this->queryHelper->getFieldByAttributeCode(
+                $filterData[0], $this->prepareFilterValue(['eq' => $filterData[1]])
+            )) {
+                $preparedFilters[] = [$field];
+            }
         }
 
         return $preparedFilters;
