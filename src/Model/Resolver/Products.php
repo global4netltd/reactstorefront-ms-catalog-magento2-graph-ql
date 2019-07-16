@@ -86,7 +86,7 @@ class Products implements ResolverInterface
      * @var array
      */
     public static $idTypeMapping = [
-        'ID'  => 'object_id',
+        'ID' => 'object_id',
         'SKU' => 'sku',
     ];
 
@@ -94,13 +94,13 @@ class Products implements ResolverInterface
      * @var array
      */
     public static $attributeMapping = [
-        'category_id'  => 'category_ids_i_mv',
-        'sku'          => 'sku_s',
-        'id'           => 'object_id',
-        'price'        => 'price_f',
+        'category_id' => 'category_ids_i_mv',
+        'sku' => 'sku_s',
+        'id' => 'object_id',
+        'price' => 'price_f',
         'max_sale_qty' => 'max_sale_qty_i',
         'min_sale_qty' => 'min_sale_qty_i',
-        'store_id'     => 'store_id_s',
+        'store_id' => 'store_id_s',
     ];
 
     /**
@@ -108,7 +108,7 @@ class Products implements ResolverInterface
      */
     public static $sortMapping = [
         'score' => 'score',
-        'name'  => 'name_s',
+        'name' => 'name_s',
         'price' => 'price_f',
     ];
 
@@ -152,7 +152,8 @@ class Products implements ResolverInterface
         ConfigHelper $configHelper,
         QueryHelper $queryHelper,
         EventManager $eventManager
-    ) {
+    )
+    {
         $this->cache = $cache;
         $this->deploymentConfig = $deploymentConfig;
         $this->storeManager = $storeManager;
@@ -172,7 +173,8 @@ class Products implements ResolverInterface
         ResolveInfo $info,
         array $value = null,
         array $args = null
-    ) {
+    )
+    {
         if (!isset($args['search']) && !isset($args['filter'])) {
             throw new GraphQlInputException(
                 __("'search' or 'filter' input argument is required.")
@@ -230,6 +232,12 @@ class Products implements ResolverInterface
             }
         }
 
+        if (isset($args['filter']) && $filters = $this->prepareFiltersByArgsFilter($args['filter'])) {
+            $query->addFilters([$filters]);
+        }
+        if (isset($args['sort']) && isset($args['sort']['sort_by'])) {
+            $query->addSort($args['sort']['sort_by'], $args['sort']['sort_order'] ?? null);
+        }
         $productResult = $query->getResponse();
 
         $products = $this->prepareResultData($productResult);
@@ -241,6 +249,7 @@ class Products implements ResolverInterface
      * @param Response $result
      * @param $idType
      * @param $forSearch
+     *
      * @return array
      */
     public function prepareResultData($result)
@@ -249,15 +258,15 @@ class Products implements ResolverInterface
 
         $data = [
             'total_count' => $result->getNumFound(),
-            'items_ids'   => $products['items_ids'],
-            'items'       => $products['items'],
-            'page_info'   => [
-                'page_size'    => count($result->getDocumentsCollection()),
+            'items_ids' => $products['items_ids'],
+            'items' => $products['items'],
+            'page_info' => [
+                'page_size' => count($result->getDocumentsCollection()),
                 'current_page' => $result->getCurrentPage(),
-                'total_pages'  => $result->getNumFound()
+                'total_pages' => $result->getNumFound()
             ],
-            'facets'      => $result->getFacets(),
-            'stats'       => $result->getStats()
+            'facets' => $result->getFacets(),
+            'stats' => $result->getStats()
         ];
 
         return $data;
@@ -266,6 +275,7 @@ class Products implements ResolverInterface
     /**
      * @param $filters
      * @param $mapping
+     *
      * @return array
      * @throws NoSuchEntityException
      */
@@ -302,6 +312,7 @@ class Products implements ResolverInterface
 
     /**
      * @param array $solrAttributes
+     *
      * @return array
      */
     public function parseAttributeCode($solrAttributes = [])
@@ -318,6 +329,7 @@ class Products implements ResolverInterface
 
     /**
      * @param $filters
+     *
      * @return array
      */
     public function parameterMapping($filters)
@@ -376,6 +388,7 @@ class Products implements ResolverInterface
     /**
      * @param $filter
      * @param null $code
+     *
      * @return string
      */
     public function prepareFilter($filter, $code = null)
@@ -400,6 +413,7 @@ class Products implements ResolverInterface
      * @param $documentCollection
      * @param $idType
      * @param bool $forSearch
+     *
      * @return array
      */
     public function getProducts($documentCollection)
@@ -432,6 +446,7 @@ class Products implements ResolverInterface
 
     /**
      * @param $url
+     *
      * @return string
      */
     public function parseUrl($url)
@@ -445,6 +460,7 @@ class Products implements ResolverInterface
 
     /**
      * @param $field
+     *
      * @return string
      */
     public function parseToString($field)
@@ -454,6 +470,7 @@ class Products implements ResolverInterface
 
     /**
      * @param $filters
+     *
      * @return array
      */
     public function getActiveAttributesCode($filters)
@@ -470,6 +487,7 @@ class Products implements ResolverInterface
 
     /**
      * @param Document $document
+     *
      * @return array
      */
     protected function prepareProductAttributes(Document $document): array
@@ -500,6 +518,7 @@ class Products implements ResolverInterface
 
     /**
      * @param ResolveInfo $info
+     *
      * @return array
      */
     public function parseQueryFields(ResolveInfo $info)
@@ -513,5 +532,54 @@ class Products implements ResolverInterface
         }
 
         return $queryFields;
+    }
+
+    /**
+     * @param array $filters
+     *
+     * @return array
+     * @throws LocalizedException
+     */
+    public function prepareFiltersByArgsFilter(array $filters)
+    {
+        $preparedFilters = [];
+        foreach ($filters as $key => $filter) {
+            $field = $this->queryHelper->getFieldByAttributeCode($key, $this->prepareFilterValue($filter));
+
+            $preparedFilters [] = $field;
+        }
+
+        return $preparedFilters;
+    }
+
+    /**
+     * @param array $value
+     *
+     * @return string
+     */
+    protected function prepareFilterValue(array $value)
+    {
+        $key = key($value);
+        if (count($value) > 1) {
+            return implode(',', $value);
+        }
+        if (!is_numeric($value[$key])) {
+            return $value[$key];
+        }
+        switch ($key) {
+            case 'eq' :
+                return (string)$value[$key];
+            case 'gt' :
+                return (string)$value[$key] + 1 . '-*';
+            case 'lt' :
+                return (string)'*-' . $value[$key] - 1;
+            case 'gteq' :
+                return (string)$value[$key] . '-*';
+            case 'lteq' :
+                return (string)'*-' . $value[$key];
+            default :
+                return (string)$value[$key];
+
+        }
     }
 }
