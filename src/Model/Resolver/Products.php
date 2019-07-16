@@ -6,6 +6,7 @@ namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
 use Exception;
 use G4NReact\MsCatalog\Client\ClientFactory;
 use G4NReact\MsCatalog\Document;
+use G4NReact\MsCatalog\ResponseInterface;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Parser;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
@@ -158,18 +159,19 @@ class Products extends AbstractResolver
         }
         $productResult = $query->getResponse();
 
-        $products = $this->prepareResultData($productResult);
+        $products = $this->prepareResultData($productResult, $args['id_type'] ?? '');
 
         return $products;
     }
 
     /**
-     * @param $result
+     * @param ResponseInterface $result
+     * @param string $idType
      * @return array
      */
-    public function prepareResultData($result)
+    public function prepareResultData(ResponseInterface $result, string $idType)
     {
-        $products = $this->getProducts($result->getDocumentsCollection());
+        $products = $this->getProducts($result->getDocumentsCollection(), $idType);
 
         $data = [
             'total_count' => $result->getNumFound(),
@@ -322,9 +324,10 @@ class Products extends AbstractResolver
 
     /**
      * @param $documentCollection
+     * @param string $idType
      * @return array
      */
-    public function getProducts($documentCollection)
+    public function getProducts($documentCollection, string $idType)
     {
         $products = [];
         $productIds = [];
@@ -335,6 +338,10 @@ class Products extends AbstractResolver
         foreach ($documentCollection as $productDocument) {
 
             $this->eventManager->dispatch('prepare_msproduct_resolver_result_before', ['productDocument' => $productDocument]);
+
+            if ($idType) {
+                $productIds[] = $productDocument->getFieldValue($idType);
+            }
 
             $productData = [];
             foreach ($productDocument->getFields() as $field) {
