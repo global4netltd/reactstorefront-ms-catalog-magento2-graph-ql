@@ -37,6 +37,15 @@ class Products extends AbstractResolver
     /**
      * @var array
      */
+    public static $idTypeMapping = [
+        'ID'  => 'id',
+        'SKU' => 'sku',
+        'GID' => 'neonet_product_id'
+    ];
+
+    /**
+     * @var array
+     */
     public static $defaultAttributes = [
         'category',
         'price'
@@ -79,11 +88,16 @@ class Products extends AbstractResolver
             );
         }
 
-        $client = ClientFactory::getInstance($this->configHelper->getConfiguration());
-
-        $query = $client->getQuery();
+        $searchEngineConfig = $this->configHelper->getConfiguration();
+        $searchEngineClient = ClientFactory::create($searchEngineConfig);
+        $query = $searchEngineClient->getQuery();
 
         $queryFields = $this->parseQueryFields($info);
+        $fieldsToSelect = [];
+        foreach ($queryFields as $attributeCode => $value) {
+            $fieldsToSelect[] = $this->queryHelper->getFieldByAttributeCode($attributeCode);
+        }
+        $query->addFieldsToSelect($fieldsToSelect);
 
         $storeId = $this->storeManager->getStore()->getId();
         $query->addFilters([
@@ -100,12 +114,17 @@ class Products extends AbstractResolver
         ) {
             $maxPageSize = 10000;
 
-//            $query->addFilter();
-            $args['fields_to_fetch'] = [self::$attributeMapping['sku']];
+            $query->addFieldsToSelect([
+                $this->queryHelper->getFieldByAttributeCode('sku'),
+            ]);
+
             $args['id_type'] = self::$idTypeMapping['SKU'];
+
             if (isset($args['filter']) && isset($args['filter']['id_type']) && ($idType = $args['filter']['id_type'])) {
-                $args['fields_to_fetch'] = [self::$attributeMapping[strtolower($idType)]];
                 $args['id_type'] = self::$idTypeMapping[$idType];
+                $query->addFieldsToSelect([
+                    $this->queryHelper->getFieldByAttributeCode($args['id_type']),
+                ]);
             }
         } elseif (isset($args['search']) && $args['search']) {
             $maxPageSize = 3000;

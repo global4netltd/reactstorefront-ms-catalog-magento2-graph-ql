@@ -114,9 +114,9 @@ class Categories extends AbstractResolver
         $categoryIds = implode(',', $ids);
         $categories = [];
         $storeId = $this->storeManager->getStore()->getId();
-        $config = $this->configHelper->getConfiguration();
-        $client = ClientFactory::create($config);
-        $msCatalogForCategory = $client->getQuery();
+        $searchEngineConfig = $this->configHelper->getConfiguration();
+        $searchEngineClient = ClientFactory::create($searchEngineConfig);
+        $msCatalogForCategory = $searchEngineClient->getQuery();
         $msCatalogForCategory->setPageStart(0);
 
         $msCatalogForCategory->addFilters([
