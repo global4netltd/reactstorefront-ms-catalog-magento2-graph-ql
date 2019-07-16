@@ -37,36 +37,6 @@ class Products extends AbstractResolver
     /**
      * @var array
      */
-    public static $idTypeMapping = [
-        'ID' => 'object_id',
-        'SKU' => 'sku',
-    ];
-
-    /**
-     * @var array
-     */
-    public static $attributeMapping = [
-        'category_id' => 'category_ids_i_mv',
-        'sku' => 'sku_s',
-        'id' => 'object_id',
-        'price' => 'price_f',
-        'max_sale_qty' => 'max_sale_qty_i',
-        'min_sale_qty' => 'min_sale_qty_i',
-        'store_id' => 'store_id_s',
-    ];
-
-    /**
-     * @var array
-     */
-    public static $sortMapping = [
-        'score' => 'score',
-        'name' => 'name_s',
-        'price' => 'price_f',
-    ];
-
-    /**
-     * @var array
-     */
     public static $defaultAttributes = [
         'category',
         'price'
