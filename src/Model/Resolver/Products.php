@@ -153,7 +153,8 @@ class Products extends AbstractResolver
             $query->addFilters([$filters]);
         }
         if (isset($args['sort']) && isset($args['sort']['sort_by'])) {
-            $query->addSort($args['sort']['sort_by'], $args['sort']['sort_order'] ?? null);
+            $sort = $this->prepareSortField($args['sort']['sort_by']);
+            $query->addSort($sort, $args['sort']['sort_order'] ?? 'ASC');
         }
         $productResult = $query->getResponse();
 
@@ -483,5 +484,16 @@ class Products extends AbstractResolver
                 return (string)$value[$key];
 
         }
+    }
+
+    /**
+     * @param $sort
+     *
+     * @return Field
+     * @throws LocalizedException
+     */
+    protected function prepareSortField($sort)
+    {
+        return $this->queryHelper->getFieldByAttributeCode($sort);
     }
 }
