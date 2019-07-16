@@ -7,6 +7,7 @@ use Exception;
 use G4NReact\MsCatalog\AbstractResponse;
 use G4NReact\MsCatalog\Client\ClientFactory;
 use G4NReact\MsCatalog\Document;
+use G4NReact\MsCatalog\ResponseInterface;
 use G4NReact\MsCatalog\Query;
 use G4NReact\MsCatalog\QueryInterface;
 use G4NReact\MsCatalog\Response;
@@ -421,6 +422,7 @@ class Products extends AbstractResolver
 
     /**
      * @param $documentCollection
+     * @param string $idType
      * @return array
      */
     public function getProducts($documentCollection)
