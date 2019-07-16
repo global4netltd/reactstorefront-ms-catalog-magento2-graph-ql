@@ -3,29 +3,21 @@ declare(strict_types=1);
 
 namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
 
+use Exception;
 use G4NReact\MsCatalog\Client\ClientFactory;
 use G4NReact\MsCatalog\Document;
-use G4NReact\MsCatalogMagento2\Helper\Config as ConfigHelper;
-use G4NReact\MsCatalogMagento2\Helper\Query as QueryHelper;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Parser;
-use G4NReact\MsCatalogSolr\Response;
-use Magento\Framework\App\CacheInterface;
-use Magento\Framework\App\DeploymentConfig;
-use Magento\Framework\Event\Manager as EventManager;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Exception\GraphQlInputException;
-use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
-use Magento\Framework\Serialize\Serializer\Json;
-use Magento\Store\Model\StoreManagerInterface;
-use Psr\Log\LoggerInterface;
 
 /**
  * Class Products
  * @package Global4net\CatalogGraphQl\Model\Resolver
  */
-class Products implements ResolverInterface
+class Products extends AbstractResolver
 {
     /**
      * CatalogGraphQl products cache key
@@ -41,46 +33,6 @@ class Products implements ResolverInterface
      * @var String
      */
     const PRODUCT_OBJECT_TYPE = 'product';
-
-    /**
-     * @var CacheInterface
-     */
-    protected $cache;
-
-    /**
-     * @var DeploymentConfig
-     */
-    protected $deploymentConfig;
-
-    /**
-     * @var StoreManagerInterface
-     */
-    protected $storeManager;
-
-    /**
-     * @var Json
-     */
-    protected $serializer;
-
-    /**
-     * @var LoggerInterface
-     */
-    protected $logger;
-
-    /**
-     * @var ConfigHelper
-     */
-    protected $configHelper;
-
-    /**
-     * @var ConfigHelper
-     */
-    protected $queryHelper;
-
-    /**
-     * @var EventManager
-     */
-    protected $eventManager;
 
     /**
      * @var array
@@ -133,39 +85,16 @@ class Products implements ResolverInterface
     public $resolveInfo;
 
     /**
-     * Products constructor
-     *
-     * @param CacheInterface $cache
-     * @param DeploymentConfig $deploymentConfig
-     * @param StoreManagerInterface $storeManager
-     * @param Json $serializer
-     * @param LoggerInterface $logger
-     * @param ConfigHelper $configHelper
-     * @param QueryHelper $queryHelper
-     */
-    public function __construct(
-        CacheInterface $cache,
-        DeploymentConfig $deploymentConfig,
-        StoreManagerInterface $storeManager,
-        Json $serializer,
-        LoggerInterface $logger,
-        ConfigHelper $configHelper,
-        QueryHelper $queryHelper,
-        EventManager $eventManager
-    )
-    {
-        $this->cache = $cache;
-        $this->deploymentConfig = $deploymentConfig;
-        $this->storeManager = $storeManager;
-        $this->serializer = $serializer;
-        $this->logger = $logger;
-        $this->configHelper = $configHelper;
-        $this->queryHelper = $queryHelper;
-        $this->eventManager = $eventManager;
-    }
-
-    /**
-     * {@inheritdoc}
+     * @param Field $field
+     * @param $context
+     * @param ResolveInfo $info
+     * @param array|null $value
+     * @param array|null $args
+     * @return array
+     * @throws GraphQlInputException
+     * @throws LocalizedException
+     * @throws NoSuchEntityException
+     * @throws Exception
      */
     public function resolve(
         Field $field,
@@ -173,8 +102,7 @@ class Products implements ResolverInterface
         ResolveInfo $info,
         array $value = null,
         array $args = null
-    )
-    {
+    ) {
         if (!isset($args['search']) && !isset($args['filter'])) {
             throw new GraphQlInputException(
                 __("'search' or 'filter' input argument is required.")
@@ -246,10 +174,7 @@ class Products implements ResolverInterface
     }
 
     /**
-     * @param Response $result
-     * @param $idType
-     * @param $forSearch
-     *
+     * @param $result
      * @return array
      */
     public function prepareResultData($result)
@@ -275,7 +200,6 @@ class Products implements ResolverInterface
     /**
      * @param $filters
      * @param $mapping
-     *
      * @return array
      * @throws NoSuchEntityException
      */
@@ -312,7 +236,6 @@ class Products implements ResolverInterface
 
     /**
      * @param array $solrAttributes
-     *
      * @return array
      */
     public function parseAttributeCode($solrAttributes = [])
@@ -329,7 +252,6 @@ class Products implements ResolverInterface
 
     /**
      * @param $filters
-     *
      * @return array
      */
     public function parameterMapping($filters)
@@ -388,7 +310,6 @@ class Products implements ResolverInterface
     /**
      * @param $filter
      * @param null $code
-     *
      * @return string
      */
     public function prepareFilter($filter, $code = null)
@@ -411,9 +332,6 @@ class Products implements ResolverInterface
 
     /**
      * @param $documentCollection
-     * @param $idType
-     * @param bool $forSearch
-     *
      * @return array
      */
     public function getProducts($documentCollection)
@@ -446,7 +364,6 @@ class Products implements ResolverInterface
 
     /**
      * @param $url
-     *
      * @return string
      */
     public function parseUrl($url)
@@ -460,7 +377,6 @@ class Products implements ResolverInterface
 
     /**
      * @param $field
-     *
      * @return string
      */
     public function parseToString($field)
@@ -470,7 +386,6 @@ class Products implements ResolverInterface
 
     /**
      * @param $filters
-     *
      * @return array
      */
     public function getActiveAttributesCode($filters)
@@ -487,7 +402,6 @@ class Products implements ResolverInterface
 
     /**
      * @param Document $document
-     *
      * @return array
      */
     protected function prepareProductAttributes(Document $document): array
@@ -518,7 +432,6 @@ class Products implements ResolverInterface
 
     /**
      * @param ResolveInfo $info
-     *
      * @return array
      */
     public function parseQueryFields(ResolveInfo $info)
@@ -570,9 +483,9 @@ class Products implements ResolverInterface
             case 'eq' :
                 return (string)$value[$key];
             case 'gt' :
-                return (string)$value[$key] + 1 . '-*';
+                return (string)($value[$key] + 1) . '-*';
             case 'lt' :
-                return (string)'*-' . $value[$key] - 1;
+                return (string)'*-' . ($value[$key] - 1);
             case 'gteq' :
                 return (string)$value[$key] . '-*';
             case 'lteq' :

@@ -6,23 +6,17 @@ namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
 use Exception;
 use G4NReact\MsCatalog\Client\ClientFactory;
 use G4NReact\MsCatalog\Document;
-use G4NReact\MsCatalogMagento2\Helper\Config as ConfigHelper;
-use G4NReact\MsCatalogMagento2\Helper\Query as QueryHelper;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Parser;
-use Magento\Framework\App\DeploymentConfig;
-use Magento\Framework\Event\Manager as EventManager;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Exception\GraphQlInputException;
-use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
-use Magento\Store\Model\StoreManagerInterface;
 
 /**
  * Categories tree field resolver, used for GraphQL request processing.
  */
-class Categories implements ResolverInterface
+class Categories extends AbstractResolver
 {
     /**
      * Name of type in GraphQL
@@ -33,54 +27,6 @@ class Categories implements ResolverInterface
      * @var String
      */
     const CATEGORY_OBJECT_TYPE = 'category';
-
-    /**
-     * @var DeploymentConfig
-     */
-    private $deploymentConfig;
-
-    /**
-     * @var StoreManagerInterface
-     */
-    private $storeManager;
-
-    /**
-     * @var ConfigHelper
-     */
-    protected $configHelper;
-
-    /**
-     * @var QueryHelper
-     */
-    protected $queryHelper;
-
-    /**
-     * @var EventManager
-     */
-    protected $eventManager;
-
-    /**
-     * Categories constructor
-     *
-     * @param DeploymentConfig $deploymentConfig
-     * @param StoreManagerInterface $storeManager
-     * @param ConfigHelper $configHelper
-     * @param QueryHelper $queryHelper
-     * @param EventManager $eventManager
-     */
-    public function __construct(
-        DeploymentConfig $deploymentConfig,
-        StoreManagerInterface $storeManager,
-        ConfigHelper $configHelper,
-        QueryHelper $queryHelper,
-        EventManager $eventManager
-    ) {
-        $this->deploymentConfig = $deploymentConfig;
-        $this->storeManager = $storeManager;
-        $this->configHelper = $configHelper;
-        $this->queryHelper = $queryHelper;
-        $this->eventManager = $eventManager;
-    }
 
     /**
      * Get category id
@@ -105,7 +51,15 @@ class Categories implements ResolverInterface
     }
 
     /**
-     * @inheritdoc
+     * @param Field $field
+     * @param $context
+     * @param ResolveInfo $info
+     * @param array|null $value
+     * @param array|null $args
+     * @return array|Document
+     * @throws GraphQlInputException
+     * @throws LocalizedException
+     * @throws NoSuchEntityException
      */
     public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
     {

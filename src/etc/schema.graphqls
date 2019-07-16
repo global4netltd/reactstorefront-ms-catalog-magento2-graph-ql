@@ -20,11 +20,6 @@ type Query {
     ): Attributes @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Attribute") @doc(description: "The attributes query returns information about attributes and options")
 }
 
-input MsProductSortInput  @doc(description: "ProductSortInput specifies the attribute to use for sorting search results and indicates whether the results are sorted in ascending or descending order") {
-    sort_by: String @doc(description: "Sorting name")
-    sort_order: String @doc(description: "Sorting order")
-}
-
 input MsProductFilterInput @doc(description: "ProductFilterInput defines the filters to be used in the search. A filter contains at least one attribute, a comparison operator, and the value that is being searched for.") {
     custom: [MsCustomFilter] @doc(description: "Custom attribute for filters")
     id_type: IdTypeEnum @doc(description: "Type of returned product id")
@@ -33,15 +28,20 @@ input MsProductFilterInput @doc(description: "ProductFilterInput defines the fil
     category_id: FilterTypeInput @doc(description: "Category ID the product belongs to")
 }
 
+input MsCustomFilter @doc(description: "Defines the custom filters to be used in the search") {
+    code: String @doc(description: "The name of custom filter")
+    input: FilterTypeInput @doc(description: "Custom filter comparison operator and value")
+}
+
+input MsProductSortInput  @doc(description: "ProductSortInput specifies the attribute to use for sorting search results and indicates whether the results are sorted in ascending or descending order") {
+    sort_by: String @doc(description: "Sorting name")
+    sort_order: String @doc(description: "Sorting order")
+}
+
 enum IdTypeEnum @doc(description: "This enumeration indicates whether to return results as id, sku")
 {
     ID
     SKU
-}
-
-input MsCustomFilter @doc(description: "Defines the custom filters to be used in the search") {
-    code: String @doc(description: "The name of custom filter")
-    input: FilterTypeInput @doc(description: "Custom filter comparison operator and value")
 }
 
 type MsProductData @doc(description: "The ProductInterface contains attributes that are common to all types of products. Note that descriptions may not be available for custom and EAV attributes.") {

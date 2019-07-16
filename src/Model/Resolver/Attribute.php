@@ -4,21 +4,28 @@ declare(strict_types=1);
 namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
 
 use Exception;
+use G4NReact\MsCatalogMagento2\Helper\Config as ConfigHelper;
+use G4NReact\MsCatalogMagento2\Helper\Query as QueryHelper;
 use G4NReact\MsCatalogMagento2GraphQl\Model\Resolver\DataProvider\Attribute as AttributeDataProvider;
+use Magento\Framework\App\CacheInterface;
+use Magento\Framework\App\DeploymentConfig;
+use Magento\Framework\Event\Manager as EventManager;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Exception\GraphQlInputException;
 use Magento\Framework\GraphQl\Exception\GraphQlNoSuchEntityException;
 use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;
 use Magento\Framework\GraphQl\Query\Resolver\Value;
-use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
+use Magento\Framework\Serialize\Serializer\Json;
+use Magento\Store\Model\StoreManagerInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * Class Attribute
  * @package G4NReact\MsCatalogMagento2GraphQl\Model\Resolver
  */
-class Attribute implements ResolverInterface
+class Attribute extends AbstractResolver
 {
     /**
      * @var AttributeDataProvider
@@ -27,12 +34,31 @@ class Attribute implements ResolverInterface
 
     /**
      * Attribute constructor
+     *
+     * @param CacheInterface $cache
+     * @param DeploymentConfig $deploymentConfig
+     * @param StoreManagerInterface $storeManager
+     * @param Json $serializer
+     * @param LoggerInterface $logger
+     * @param ConfigHelper $configHelper
+     * @param QueryHelper $queryHelper
+     * @param EventManager $eventManager
      * @param AttributeDataProvider $attributeDataProvider
      */
     public function __construct(
+        CacheInterface $cache,
+        DeploymentConfig $deploymentConfig,
+        StoreManagerInterface $storeManager,
+        Json $serializer,
+        LoggerInterface $logger,
+        ConfigHelper $configHelper,
+        QueryHelper $queryHelper,
+        EventManager $eventManager,
         AttributeDataProvider $attributeDataProvider
     ) {
         $this->attributeDataProvider = $attributeDataProvider;
+
+        parent::__construct($cache, $deploymentConfig, $storeManager, $serializer, $logger, $configHelper, $queryHelper, $eventManager);
     }
 
     /**
