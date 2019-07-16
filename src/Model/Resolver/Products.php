@@ -150,7 +150,7 @@ class Products extends AbstractResolver
         }
 
         if (isset($args['filter']) && $filters = $this->prepareFiltersByArgsFilter($args['filter'])) {
-            $query->addFilters([$filters]);
+            $query->addFilters($filters);
         }
         if (isset($args['sort']) && isset($args['sort']['sort_by'])) {
             $sort = $this->prepareSortField($args['sort']['sort_by']);
@@ -449,7 +449,7 @@ class Products extends AbstractResolver
         foreach ($filters as $key => $filter) {
             $field = $this->queryHelper->getFieldByAttributeCode($key, $this->prepareFilterValue($filter));
 
-            $preparedFilters [] = $field;
+            $preparedFilters[] = [$field];
         }
 
         return $preparedFilters;
@@ -466,24 +466,29 @@ class Products extends AbstractResolver
         if (count($value) > 1) {
             return implode(',', $value);
         }
-        if (!is_numeric($value[$key])) {
-            return $value[$key];
-        }
-        switch ($key) {
-            case 'eq' :
-                return (string)$value[$key];
-            case 'gt' :
-                return (string)($value[$key] + 1) . '-*';
-            case 'lt' :
-                return (string)'*-' . ($value[$key] - 1);
-            case 'gteq' :
-                return (string)$value[$key] . '-*';
-            case 'lteq' :
-                return (string)'*-' . $value[$key];
-            default :
-                return (string)$value[$key];
 
+        if ($key) {
+            if (isset($value[$key]) && !is_numeric($value[$key])) {
+                return $value[$key];
+            }
+            switch ($key) {
+                case 'eq' :
+                    return (string)$value[$key];
+                case 'gt' :
+                    return (string)($value[$key] + 1) . '-*';
+                case 'lt' :
+                    return (string)'*-' . ($value[$key] - 1);
+                case 'gteq' :
+                    return (string)$value[$key] . '-*';
+                case 'lteq' :
+                    return (string)'*-' . $value[$key];
+                default :
+                    return (string)$value[$key];
+
+            }
         }
+
+        return '';
     }
 
     /**
