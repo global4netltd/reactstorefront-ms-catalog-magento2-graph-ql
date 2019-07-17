@@ -53,6 +53,7 @@ type MsProductData @doc(description: "The ProductInterface contains attributes t
     description: String @doc(description: "The product description.")
     price: Float @doc(description: "Price of the product")
     special_price: Float @doc(description: "Special price of the product")
+    final_price: Float @doc(description: "Final price of the product")
     has_special_price: Boolean @doc(description: "If product has special price")
     url: String @doc(description: "Url for product")
     url_key: String @doc(description: "Url key for product")
