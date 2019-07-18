@@ -4,7 +4,7 @@ namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
 
 use G4NReact\MsCatalog\Client\ClientFactory;
 use G4NReact\MsCatalog\ResponseInterface;
-use G4NReact\MsCatalogMagento2\Helper\BaseQuery;
+use G4NReact\MsCatalogMagento2\Helper\Query;
 use G4NReact\MsCatalogMagento2\Helper\Cms\CmsQuery;
 use G4NReact\MsCatalogMagento2\Helper\Config as ConfigHelper;
 use Magento\Framework\App\CacheInterface;
@@ -33,7 +33,7 @@ class CmsPage extends AbstractResolver
      * @param Json $serializer
      * @param LoggerInterface $logger
      * @param ConfigHelper $configHelper
-     * @param BaseQuery $queryHelper
+     * @param Query $queryHelper
      * @param EventManager $eventManager
      * @param CmsQuery $cmsQuery
      */
@@ -44,7 +44,7 @@ class CmsPage extends AbstractResolver
         Json $serializer,
         LoggerInterface $logger,
         ConfigHelper $configHelper,
-        BaseQuery $queryHelper,
+        Query $queryHelper,
         EventManager $eventManager,
         CmsQuery $cmsQuery
     )

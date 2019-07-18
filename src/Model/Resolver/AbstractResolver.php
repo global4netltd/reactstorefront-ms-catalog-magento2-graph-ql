@@ -3,7 +3,7 @@
 namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
 
 use G4NReact\MsCatalog\Document;
-use G4NReact\MsCatalogMagento2\Helper\BaseQuery;
+use G4NReact\MsCatalogMagento2\Helper\Query;
 use G4NReact\MsCatalogMagento2\Helper\Config as ConfigHelper;
 use Magento\Framework\App\CacheInterface;
 use Magento\Framework\App\DeploymentConfig;
@@ -54,7 +54,7 @@ abstract class AbstractResolver implements ResolverInterface
     protected $configHelper;
 
     /**
-     * @var BaseQuery
+     * @var Query
      */
     protected $queryHelper;
 
@@ -72,7 +72,7 @@ abstract class AbstractResolver implements ResolverInterface
      * @param Json $serializer
      * @param LoggerInterface $logger
      * @param ConfigHelper $configHelper
-     * @param BaseQuery $queryHelper
+     * @param Query $queryHelper
      * @param EventManager $eventManager
      */
     public function __construct(
@@ -82,7 +82,7 @@ abstract class AbstractResolver implements ResolverInterface
         Json $serializer,
         LoggerInterface $logger,
         ConfigHelper $configHelper,
-        BaseQuery $queryHelper,
+        Query $queryHelper,
         EventManager $eventManager
     )
     {

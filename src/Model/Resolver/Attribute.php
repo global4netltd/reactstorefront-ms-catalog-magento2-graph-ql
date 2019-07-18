@@ -5,7 +5,7 @@ namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
 
 use Exception;
 use G4NReact\MsCatalogMagento2\Helper\Config as ConfigHelper;
-use G4NReact\MsCatalogMagento2\Helper\BaseQuery as QueryHelper;
+use G4NReact\MsCatalogMagento2\Helper\Query as QueryHelper;
 use G4NReact\MsCatalogMagento2GraphQl\Model\Resolver\DataProvider\Attribute as AttributeDataProvider;
 use Magento\Framework\App\CacheInterface;
 use Magento\Framework\App\DeploymentConfig;
