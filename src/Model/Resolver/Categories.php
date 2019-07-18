@@ -132,24 +132,29 @@ class Categories extends AbstractResolver
             ],
         ]);
 
+        $fieldsToSelect = [];
+        foreach ($queryFields as $attributeCode => $value) {
+            $fieldsToSelect[] = $this->queryHelper->getFieldByAttributeCode($attributeCode, null, 'catalog_category');
+        }
+
         if ($level) {
             $msCatalogForCategory->addFilter($this->queryHelper
                 ->getFieldByAttributeCode('level', $level, 'catalog_category'));
             $msCatalogForCategory->setPageSize(1000);
-            $fieldsToSelect = [];
-            foreach ($queryFields as $attributeCode => $value) {
-                $fieldsToSelect[] = $this->queryHelper->getFieldByAttributeCode($attributeCode, null, 'catalog_category');
-            }
-            $msCatalogForCategory->addFieldsToSelect($fieldsToSelect);
+            $fieldsToSelect[] = $this->queryHelper->getFieldByAttributeCode('level', null, 'catalog_category');
+            $fieldsToSelect[] = $this->queryHelper->getFieldByAttributeCode('parent_id', null, 'catalog_category');
         } elseif ($children) {
             $msCatalogForCategory->addFilter($this->queryHelper
                 ->getFieldByAttributeCode('parent_id', $categoryIds, 'catalog_category'));
             $msCatalogForCategory->setPageSize(100);
+            $fieldsToSelect[] = $this->queryHelper->getFieldByAttributeCode('parent_id', null, 'catalog_category');
         } elseif ($categoryIds) {
             $msCatalogForCategory->addFilter($this->queryHelper
                 ->getFieldByAttributeCode('id', $categoryIds, 'catalog_category'));
             $msCatalogForCategory->setPageSize(count($ids));
         }
+
+        $msCatalogForCategory->addFieldsToSelect($fieldsToSelect);
 
         $msCatalogForCategory->setSort([
             [$this->queryHelper
