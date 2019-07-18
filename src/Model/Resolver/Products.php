@@ -570,6 +570,10 @@ class Products extends AbstractResolver
      */
     protected function prepareFilterValue(array $value)
     {
+        return $value;
+        
+        // temporary leave below
+
         $key = key($value);
         if (count($value) > 1) {
             return implode(',', $value);
