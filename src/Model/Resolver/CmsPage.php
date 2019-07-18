@@ -129,7 +129,7 @@ class CmsPage extends AbstractResolver
             }
         }
 
-        return $solrCmsPage;
+        return $solrCmsPage ?? [];
     }
 
 }
