@@ -2,8 +2,9 @@
 
 namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
 
+use G4NReact\MsCatalog\Document;
+use G4NReact\MsCatalogMagento2\Helper\BaseQuery;
 use G4NReact\MsCatalogMagento2\Helper\Config as ConfigHelper;
-use G4NReact\MsCatalogMagento2\Helper\Query as QueryHelper;
 use Magento\Framework\App\CacheInterface;
 use Magento\Framework\App\DeploymentConfig;
 use Magento\Framework\Event\Manager as EventManager;
@@ -53,7 +54,7 @@ abstract class AbstractResolver implements ResolverInterface
     protected $configHelper;
 
     /**
-     * @var QueryHelper
+     * @var BaseQuery
      */
     protected $queryHelper;
 
@@ -63,7 +64,7 @@ abstract class AbstractResolver implements ResolverInterface
     protected $eventManager;
 
     /**
-     * AbstractResolver constructor
+     * AbstractResolver constructor.
      *
      * @param CacheInterface $cache
      * @param DeploymentConfig $deploymentConfig
@@ -71,7 +72,7 @@ abstract class AbstractResolver implements ResolverInterface
      * @param Json $serializer
      * @param LoggerInterface $logger
      * @param ConfigHelper $configHelper
-     * @param QueryHelper $queryHelper
+     * @param BaseQuery $queryHelper
      * @param EventManager $eventManager
      */
     public function __construct(
@@ -81,9 +82,10 @@ abstract class AbstractResolver implements ResolverInterface
         Json $serializer,
         LoggerInterface $logger,
         ConfigHelper $configHelper,
-        QueryHelper $queryHelper,
+        BaseQuery $queryHelper,
         EventManager $eventManager
-    ) {
+    )
+    {
         $this->cache = $cache;
         $this->deploymentConfig = $deploymentConfig;
         $this->storeManager = $storeManager;
@@ -100,6 +102,7 @@ abstract class AbstractResolver implements ResolverInterface
      * @param ResolveInfo $info
      * @param array|null $value
      * @param array|null $args
+     *
      * @return mixed|Value
      */
     public function resolve(
@@ -108,8 +111,56 @@ abstract class AbstractResolver implements ResolverInterface
         ResolveInfo $info,
         array $value = null,
         array $args = null
-    ) {
+    )
+    {
         // TODO: Implement resolve() method.
         return null;
+    }
+
+    /**
+     * @param Document $documentData
+     * @param array $queryFields
+     * @param string $eventType
+     *
+     * @return array
+     */
+    public function prepareDocumentResult(Document $documentData, array $queryFields = [], string $eventType)
+    {
+        $this->eventManager->dispatch('prepare_' . $eventType . '_resolver_result_before', ['documentData' => $documentData]);
+
+        if (empty($documentData)) {
+            return [];
+        }
+
+        $data = [];
+        foreach ($queryFields as $fieldName => $value) {
+            $data[$fieldName] = $this->parseToString($documentData->getFieldValue($fieldName));
+        }
+
+        $this->eventManager->dispatch('prepare_' . $eventType . '_resolver_result_after', ['documentData' => $documentData]);
+
+        return $data;
+    }
+
+    /**
+     * @param $field
+     * @return string
+     */
+    public function parseToString($field)
+    {
+        return is_array($field) ? implode(', ', $field) : $field;
+    }
+
+    /**
+     * @param $url
+     * @return string
+     */
+    public function parseUrl($url)
+    {
+        if ($url) {
+            return '/' . ltrim($this->parseToString($url), '/');
+        }
+
+        return '';
     }
 }

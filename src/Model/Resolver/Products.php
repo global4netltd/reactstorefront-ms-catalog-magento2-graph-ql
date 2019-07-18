@@ -457,28 +457,6 @@ class Products extends AbstractResolver
     }
 
     /**
-     * @param $url
-     * @return string
-     */
-    public function parseUrl($url)
-    {
-        if ($url) {
-            return '/' . ltrim($this->parseToString($url), '/');
-        }
-
-        return '';
-    }
-
-    /**
-     * @param $field
-     * @return string
-     */
-    public function parseToString($field)
-    {
-        return is_array($field) ? implode(', ', $field) : $field;
-    }
-
-    /**
      * @param $filters
      * @return array
      */

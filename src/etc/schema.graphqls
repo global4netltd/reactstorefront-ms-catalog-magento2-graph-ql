@@ -18,6 +18,9 @@ type Query {
     attributes (
         attributeCodes: [String] @doc(description: "List of attribute codes")
     ): Attributes @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Attribute") @doc(description: "The attributes query returns information about attributes and options")
+    msCmsPage (
+        id: Int @doc(description: "Id of the CMS page")
+    ): MsCmsPage @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\CmsPage") @doc(description: "The CMS page query returns information about a CMS page")
 }
 
 input MsProductFilterInput @doc(description: "ProductFilterInput defines the filters to be used in the search. A filter contains at least one attribute, a comparison operator, and the value that is being searched for.") {
@@ -160,4 +163,15 @@ type AttributeDefinition @doc(description: "Attribute contains the attribute_typ
 type AttributeOption @doc(description: "Attribute option.") {
     value: Int @doc(description: "Attribute option id.")
     label: String @doc(description: "Attribute option label.")
+}
+
+type MsCmsPage @doc(description: "CMS page defines all CMS page information") {
+    url_key: String @doc(description: "URL key of CMS page")
+    title: String @doc(description: "CMS page title")
+    content: String @doc(description: "CMS page content")
+    content_heading: String @doc(description: "CMS page content heading")
+    page_layout: String @doc(description: "CMS page content heading")
+    meta_title: String @doc(description: "CMS page meta title")
+    meta_description: String @doc(description: "CMS page meta description")
+    meta_keywords: String @doc(description: "CMS page meta keywords")
 }

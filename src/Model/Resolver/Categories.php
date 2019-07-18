@@ -167,7 +167,7 @@ class Categories extends AbstractResolver
 
         if ($categoryResult->getNumFound()) {
             foreach ($categoryResult->getDocumentsCollection() as $category) {
-                $solrCategory = $this->prepareCategoryResult($category, $queryFields);
+                $solrCategory = $this->prepareDocumentResult($category, $queryFields, 'mscategory');
                 if ($level) {
                     if ($solrCategory['parent_id'] > 2) {
                         $categories[$solrCategory['parent_id']]['children'][$solrCategory['id']] = $solrCategory;
@@ -204,50 +204,5 @@ class Categories extends AbstractResolver
         }
 
         return $categories;
-    }
-
-    /**
-     * @param Document $categoryData
-     * @param array $queryFields
-     * @return array
-     */
-    public function prepareCategoryResult(Document $categoryData, array $queryFields = [])
-    {
-        $this->eventManager->dispatch('prepare_mscategory_resolver_result_before', ['categoryData' => $categoryData]);
-
-        if (empty($categoryData)) {
-            return [];
-        }
-
-        $data = [];
-        foreach ($queryFields as $fieldName => $value) {
-            $data[$fieldName] = $this->parseToString($categoryData->getFieldValue($fieldName));
-        }
-
-        $this->eventManager->dispatch('prepare_mscategory_resolver_result_after', ['categoryData' => $categoryData]);
-
-        return $data;
-    }
-
-    /**
-     * @param $url
-     * @return string
-     */
-    public function parseUrl($url)
-    {
-        if ($url) {
-            return '/' . ltrim($this->parseToString($url), '/');
-        }
-
-        return '';
-    }
-
-    /**
-     * @param $field
-     * @return string
-     */
-    public function parseToString($field)
-    {
-        return is_array($field) ? implode(', ', $field) : $field;
     }
 }
