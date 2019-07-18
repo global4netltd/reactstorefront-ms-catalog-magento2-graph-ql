@@ -110,7 +110,7 @@ class CmsPage extends AbstractResolver
             ],
             [
                 $this->queryHelper->getFieldByAttributeCode(
-                    'object_type', 'cms'
+                    'object_type', HelperCmsField::OBJECT_TYPE
                 ),
             ],
             [
