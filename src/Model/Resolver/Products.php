@@ -4,19 +4,24 @@ declare(strict_types=1);
 namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
 
 use Exception;
-use G4NReact\MsCatalog\AbstractResponse;
 use G4NReact\MsCatalog\Client\ClientFactory;
 use G4NReact\MsCatalog\Document;
-use G4NReact\MsCatalog\ResponseInterface;
-use G4NReact\MsCatalog\Query;
 use G4NReact\MsCatalog\QueryInterface;
-use G4NReact\MsCatalog\Response;
+use G4NReact\MsCatalogMagento2\Helper\Config as ConfigHelper;
+use G4NReact\MsCatalogMagento2\Helper\Query;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Parser;
+use Magento\Catalog\Model\CategoryRepository;
+use Magento\Framework\App\CacheInterface;
+use Magento\Framework\App\DeploymentConfig;
+use Magento\Framework\Event\Manager as EventManager;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Exception\GraphQlInputException;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
+use Magento\Framework\Serialize\Serializer\Json;
+use Magento\Store\Model\StoreManagerInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * Class Products
@@ -48,6 +53,11 @@ class Products extends AbstractResolver
     ];
 
     /**
+     * @var CategoryRepository
+     */
+    protected $categoryRepository;
+
+    /**
      * List of attributes codes that we can skip when returning attributes for product
      *
      * @var array
@@ -58,6 +68,35 @@ class Products extends AbstractResolver
      * @var string
      */
     public $resolveInfo;
+
+    /**
+     * AbstractResolver constructor.
+     *
+     * @param CacheInterface $cache
+     * @param DeploymentConfig $deploymentConfig
+     * @param StoreManagerInterface $storeManager
+     * @param Json $serializer
+     * @param LoggerInterface $logger
+     * @param ConfigHelper $configHelper
+     * @param Query $queryHelper
+     * @param EventManager $eventManager
+     * @param CategoryRepository $categoryRepository
+     */
+    public function __construct(
+        CacheInterface $cache,
+        DeploymentConfig $deploymentConfig,
+        StoreManagerInterface $storeManager,
+        Json $serializer,
+        LoggerInterface $logger,
+        ConfigHelper $configHelper,
+        Query $queryHelper,
+        EventManager $eventManager,
+        CategoryRepository $categoryRepository
+    ) {
+        $this->categoryRepository = $categoryRepository;
+
+        return parent::__construct($cache, $deploymentConfig, $storeManager, $serializer, $logger, $configHelper, $queryHelper, $eventManager);
+    }
 
     /**
      * @param Field $field
@@ -77,8 +116,7 @@ class Products extends AbstractResolver
         ResolveInfo $info,
         array $value = null,
         array $args = null
-    )
-    {
+    ) {
         if (!isset($args['search']) && !isset($args['filter'])) {
             throw new GraphQlInputException(
                 __("'search' or 'filter' input argument is required.")
@@ -105,7 +143,6 @@ class Products extends AbstractResolver
             $query->addFieldsToSelect([
                 $this->queryHelper->getFieldByAttributeCode('sku'),
             ]);
-
         } else {
             $this->handleFieldsToSelect($query, $info);
             $maxPageSize = 3000;
@@ -126,10 +163,10 @@ class Products extends AbstractResolver
         return $products;
     }
 
-
     /**
      * @param QueryInterface $query
      * @param $args
+     * @throws LocalizedException
      */
     public function handleFacets($query, $args)
     {
@@ -144,6 +181,7 @@ class Products extends AbstractResolver
     /**
      * @param QueryInterface $query
      * @param $info
+     * @throws LocalizedException
      */
     public function handleSort($query, $info)
     {
@@ -206,11 +244,10 @@ class Products extends AbstractResolver
         if (isset($args['filter']) && ($filters = $this->prepareFiltersByArgsFilter($args['filter']))) {
             $query->addFilters($filters);
         }
-
     }
 
     /**
-     * @param AbstractResponse $result
+     * @param $response
      * @return array
      */
     public function prepareResultData($response)
@@ -241,14 +278,12 @@ class Products extends AbstractResolver
         $preparedFacets = [];
 
         foreach ($facets as $field => $values) {
-
             $preparedValues = [];
 
-            $key = false;
             foreach ($values as $valueId => $count) {
                 $preparedValues[] = [
-                    'value_id'   => $valueId,
-                    'count' => $count
+                    'value_id' => $valueId,
+                    'count'    => $count
                 ];
             }
 
@@ -434,7 +469,6 @@ class Products extends AbstractResolver
 
         /** @var Document $productDocument */
         foreach ($documentCollection as $productDocument) {
-
             $this->eventManager->dispatch('prepare_msproduct_resolver_result_before', ['productDocument' => $productDocument]);
 
             $productData = [];
@@ -529,11 +563,10 @@ class Products extends AbstractResolver
     {
         $preparedFilters = [];
         foreach ($filters as $key => $filter) {
-
             if ($key === 'attributes') {
                 $preparedFilters = array_merge($preparedFilters, $this->prepareAttributes($filter));
             } else {
-                $field = $this->queryHelper->getFieldByAttributeCode($key, $this->prepareFilterValue($filter));
+                $field = $this->queryHelper->getFieldByAttributeCode($key, $filter);
                 $preparedFilters[] = [$field];
             }
         }
@@ -543,6 +576,8 @@ class Products extends AbstractResolver
 
     /**
      * @param $attributes
+     * @return array
+     * @throws LocalizedException
      */
     public function prepareAttributes($attributes)
     {
@@ -554,7 +589,8 @@ class Products extends AbstractResolver
                 continue;
             }
             if ($field = $this->queryHelper->getFieldByAttributeCode(
-                $filterData[0], $this->prepareFilterValue(['eq' => $filterData[1]])
+                $filterData[0],
+                $this->prepareFilterValue(['eq' => $filterData[1]])
             )) {
                 $preparedFilters[] = [$field];
             }
@@ -571,7 +607,7 @@ class Products extends AbstractResolver
     protected function prepareFilterValue(array $value)
     {
         return $value;
-        
+
         // temporary leave below
 
         $key = key($value);
@@ -584,17 +620,17 @@ class Products extends AbstractResolver
                 return $value[$key];
             }
             switch ($key) {
-                case 'eq' :
+                case 'eq':
                     return (string)$value[$key];
-                case 'gt' :
+                case 'gt':
                     return (string)($value[$key] + 1) . '-*';
-                case 'lt' :
+                case 'lt':
                     return (string)'*-' . ($value[$key] - 1);
-                case 'gteq' :
+                case 'gteq':
                     return (string)$value[$key] . '-*';
-                case 'lteq' :
+                case 'lteq':
                     return (string)'*-' . $value[$key];
-                default :
+                default:
                     return (string)$value[$key];
 
             }
