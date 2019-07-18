@@ -121,36 +121,32 @@ class Categories extends AbstractResolver
 
         $msCatalogForCategory->addFilters([
             [
-                $this->queryHelper->getFieldByAttributeCode(
-                        'store_id', $storeId, 'catalog_category'
-                )
+                $this->queryHelper->getFieldByCategoryAttributeCode('store_id', $storeId)
             ],
             [
-                $this->queryHelper->getFieldByAttributeCode(
-                    'object_type', 'category', 'catalog_category'
-                )
+                $this->queryHelper->getFieldByCategoryAttributeCode('object_type', 'category')
             ],
         ]);
 
         $fieldsToSelect = [];
         foreach ($queryFields as $attributeCode => $value) {
-            $fieldsToSelect[] = $this->queryHelper->getFieldByAttributeCode($attributeCode, null, 'catalog_category');
+            $fieldsToSelect[] = $this->queryHelper->getFieldByCategoryAttributeCode($attributeCode);
         }
 
         if ($level) {
             $msCatalogForCategory->addFilter($this->queryHelper
-                ->getFieldByAttributeCode('level', $level, 'catalog_category'));
+                ->getFieldByCategoryAttributeCode('level', $level));
             $msCatalogForCategory->setPageSize(1000);
-            $fieldsToSelect[] = $this->queryHelper->getFieldByAttributeCode('level', null, 'catalog_category');
-            $fieldsToSelect[] = $this->queryHelper->getFieldByAttributeCode('parent_id', null, 'catalog_category');
+            $fieldsToSelect[] = $this->queryHelper->getFieldByCategoryAttributeCode('level');
+            $fieldsToSelect[] = $this->queryHelper->getFieldByCategoryAttributeCode('parent_id');
         } elseif ($children) {
             $msCatalogForCategory->addFilter($this->queryHelper
-                ->getFieldByAttributeCode('parent_id', $categoryIds, 'catalog_category'));
+                ->getFieldByCategoryAttributeCode('parent_id', $categoryIds));
             $msCatalogForCategory->setPageSize(100);
-            $fieldsToSelect[] = $this->queryHelper->getFieldByAttributeCode('parent_id', null, 'catalog_category');
+            $fieldsToSelect[] = $this->queryHelper->getFieldByCategoryAttributeCode('parent_id');
         } elseif ($categoryIds) {
             $msCatalogForCategory->addFilter($this->queryHelper
-                ->getFieldByAttributeCode('id', $categoryIds, 'catalog_category'));
+                ->getFieldByCategoryAttributeCode('id', $categoryIds));
             $msCatalogForCategory->setPageSize(count($ids));
         }
 
@@ -158,9 +154,9 @@ class Categories extends AbstractResolver
 
         $msCatalogForCategory->setSort([
             [$this->queryHelper
-                ->getFieldByAttributeCode('level', $categoryIds, 'catalog_category'), 'ASC'],
+                ->getFieldByCategoryAttributeCode('level', $categoryIds), 'ASC'],
             [$this->queryHelper
-                ->getFieldByAttributeCode('position', $categoryIds, 'catalog_category'), 'ASC'],
+                ->getFieldByCategoryAttributeCode('position', $categoryIds), 'ASC'],
         ]);
 
         $categoryResult = $msCatalogForCategory->getResponse();
@@ -169,7 +165,7 @@ class Categories extends AbstractResolver
             foreach ($categoryResult->getDocumentsCollection() as $category) {
                 $solrCategory = $this->prepareDocumentResult($category, $queryFields, 'mscategory');
                 if ($level) {
-                    if ($solrCategory['parent_id'] > 2) {
+                    if (isset($solrCategory['parent_id']) && ($solrCategory['parent_id'] > 2)) {
                         $categories[$solrCategory['parent_id']]['children'][$solrCategory['id']] = $solrCategory;
                     } else {
                         if (isset($categories[$solrCategory['id']])) {
@@ -179,7 +175,8 @@ class Categories extends AbstractResolver
                         }
                     }
                 } elseif ($children) {
-                    if ($parentCategoryId = $solrCategory['parent_id']) {
+                    if (isset($solrCategory['parent_id'])) {
+                        $parentCategoryId = $solrCategory['parent_id'];
                         if (isset($categories[$parentCategoryId])) {
                             $categories[$parentCategoryId][] = $solrCategory;
                         } else {
