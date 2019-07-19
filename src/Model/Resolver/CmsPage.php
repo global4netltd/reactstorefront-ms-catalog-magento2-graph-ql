@@ -25,35 +25,6 @@ use Psr\Log\LoggerInterface;
 class CmsPage extends AbstractResolver
 {
     /**
-     * CmsPage constructor.
-     *
-     * @param CacheInterface $cache
-     * @param DeploymentConfig $deploymentConfig
-     * @param StoreManagerInterface $storeManager
-     * @param Json $serializer
-     * @param LoggerInterface $logger
-     * @param ConfigHelper $configHelper
-     * @param Query $queryHelper
-     * @param EventManager $eventManager
-     * @param CmsQuery $cmsQuery
-     */
-    public function __construct(
-        CacheInterface $cache,
-        DeploymentConfig $deploymentConfig,
-        StoreManagerInterface $storeManager,
-        Json $serializer,
-        LoggerInterface $logger,
-        ConfigHelper $configHelper,
-        Query $queryHelper,
-        EventManager $eventManager,
-        CmsQuery $cmsQuery
-    )
-    {
-        $this->queryHelper = $cmsQuery;
-        parent::__construct($cache, $deploymentConfig, $storeManager, $serializer, $logger, $configHelper, $queryHelper, $eventManager);
-    }
-
-    /**
      * @param Field $field
      * @param \Magento\Framework\GraphQl\Query\Resolver\ContextInterface $context
      * @param ResolveInfo $info
@@ -96,25 +67,24 @@ class CmsPage extends AbstractResolver
 
         foreach ($queryFields as $name => $field) {
             $query->addFieldToSelect(
-                $this->queryHelper->getFieldByAttributeCode(
+                $this->queryHelper->getFieldByCmsPageColumnName(
                     $name
                 )
             );
         }
-
         $query->addFilters([
             [
-                $this->queryHelper->getFieldByAttributeCode(
+                $this->queryHelper->getFieldByCmsPageColumnName(
                     'store_id', $storeId
                 )
             ],
             [
-                $this->queryHelper->getFieldByAttributeCode(
+                $this->queryHelper->getFieldByCmsPageColumnName(
                     'object_type', HelperCmsField::OBJECT_TYPE
                 ),
             ],
             [
-                $this->queryHelper->getFieldByAttributeCode(
+                $this->queryHelper->getFieldByCmsPageColumnName(
                     'id', $id
                 )
             ]
