@@ -160,6 +160,10 @@ class Products extends AbstractResolver
 
         $products = $this->prepareResultData($response);
 
+        // set args to context for eager loading etc. purposes
+        $context->msProductsArgs = $args;
+        $context->msProducts = $products;
+
         return $products;
     }
 
