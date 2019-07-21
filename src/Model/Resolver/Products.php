@@ -8,6 +8,7 @@ use G4NReact\MsCatalog\Client\ClientFactory;
 use G4NReact\MsCatalog\Document;
 use G4NReact\MsCatalog\QueryInterface;
 use G4NReact\MsCatalogMagento2\Helper\Config as ConfigHelper;
+use G4NReact\MsCatalogMagento2\Helper\Facets as FacetsHelper;
 use G4NReact\MsCatalogMagento2\Helper\Query;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Parser;
 use Magento\Catalog\Model\CategoryRepository;
@@ -70,6 +71,11 @@ class Products extends AbstractResolver
     public $resolveInfo;
 
     /**
+     * @var FacetsHelper
+     */
+    protected $facetsHelper;
+
+    /**
      * AbstractResolver constructor.
      *
      * @param CacheInterface $cache
@@ -81,6 +87,7 @@ class Products extends AbstractResolver
      * @param Query $queryHelper
      * @param EventManager $eventManager
      * @param CategoryRepository $categoryRepository
+     * @param FacetsHelper $facetsHelper
      */
     public function __construct(
         CacheInterface $cache,
@@ -91,9 +98,11 @@ class Products extends AbstractResolver
         ConfigHelper $configHelper,
         Query $queryHelper,
         EventManager $eventManager,
-        CategoryRepository $categoryRepository
+        CategoryRepository $categoryRepository,
+        FacetsHelper $facetsHelper
     ) {
         $this->categoryRepository = $categoryRepository;
+        $this->facetsHelper = $facetsHelper;
 
         return parent::__construct($cache, $deploymentConfig, $storeManager, $serializer, $logger, $configHelper, $queryHelper, $eventManager);
     }
@@ -145,7 +154,7 @@ class Products extends AbstractResolver
             ]);
         } else {
             $this->handleFieldsToSelect($query, $info);
-            $maxPageSize = 3000;
+            $maxPageSize = 100; // @todo this should depend on maximum page size in listing
         }
 
         $pageSize = (isset($args['pageSize']) && ($args['pageSize'] < $maxPageSize)) ? $args['pageSize'] : $maxPageSize;
@@ -174,6 +183,12 @@ class Products extends AbstractResolver
      */
     public function handleFacets($query, $args)
     {
+        if ($categoryFilter = $query->getFilter('category_id')) {
+            $facetFields = $this->facetsHelper->getFacetFieldsByCategory($categoryFilter['field']->getValue());
+//            $query->addFacets($facetFields);
+            $query->addFacets($facetFields);
+        }
+
         /**
          * @todo only for testing purpopse, eventually handle facets from category,
          */
@@ -574,7 +589,6 @@ class Products extends AbstractResolver
                 $preparedFilters[] = [$field];
             }
         }
-
         return $preparedFilters;
     }
 

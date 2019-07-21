@@ -60,6 +60,7 @@ type MsProductData @doc(description: "The ProductInterface contains attributes t
     has_special_price: Boolean @doc(description: "If product has special price")
     url: String @doc(description: "Url for product")
     url_key: String @doc(description: "Url key for product")
+    request_path: String @doc(description: "Request path for product")
     categories: [Int] @doc(description: "Array of product categories ids")
     thumbnail: String @doc(description: "Path to thumbnail image")
     small_image: String @doc(description: "Path to thumbnail small image")
