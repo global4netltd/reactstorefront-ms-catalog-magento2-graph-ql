@@ -84,8 +84,7 @@ abstract class AbstractResolver implements ResolverInterface
         ConfigHelper $configHelper,
         Query $queryHelper,
         EventManager $eventManager
-    )
-    {
+    ) {
         $this->cache = $cache;
         $this->deploymentConfig = $deploymentConfig;
         $this->storeManager = $storeManager;
@@ -102,7 +101,6 @@ abstract class AbstractResolver implements ResolverInterface
      * @param ResolveInfo $info
      * @param array|null $value
      * @param array|null $args
-     *
      * @return mixed|Value
      */
     public function resolve(
@@ -111,9 +109,7 @@ abstract class AbstractResolver implements ResolverInterface
         ResolveInfo $info,
         array $value = null,
         array $args = null
-    )
-    {
-        // TODO: Implement resolve() method.
+    ) {
         return null;
     }
 
@@ -121,7 +117,6 @@ abstract class AbstractResolver implements ResolverInterface
      * @param Document $documentData
      * @param array $queryFields
      * @param string $eventType
-     *
      * @return array
      */
     public function prepareDocumentResult(Document $documentData, array $queryFields = [], string $eventType)

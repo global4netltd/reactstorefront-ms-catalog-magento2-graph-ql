@@ -138,12 +138,15 @@ class Categories extends AbstractResolver
                 ->getFieldByCategoryAttributeCode('level', $level));
             $msCatalogForCategory->setPageSize(1000);
             $fieldsToSelect[] = $this->queryHelper->getFieldByCategoryAttributeCode('level');
+            $queryFields['level'] = 1;
             $fieldsToSelect[] = $this->queryHelper->getFieldByCategoryAttributeCode('parent_id');
+            $queryFields['parent_id'] = 1;
         } elseif ($children) {
             $msCatalogForCategory->addFilter($this->queryHelper
                 ->getFieldByCategoryAttributeCode('parent_id', $categoryIds));
             $msCatalogForCategory->setPageSize(100);
             $fieldsToSelect[] = $this->queryHelper->getFieldByCategoryAttributeCode('parent_id');
+            $queryFields['parent_id'] = 1;
         } elseif ($categoryIds) {
             $msCatalogForCategory->addFilter($this->queryHelper
                 ->getFieldByCategoryAttributeCode('id', $categoryIds));
