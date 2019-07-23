@@ -136,7 +136,7 @@ class Products extends AbstractResolver
         $searchEngineClient = ClientFactory::create($searchEngineConfig);
 
         $query = $searchEngineClient->getQuery();
-        $this->handleSort($query, $info);
+        $this->handleSort($query, $args);
         $this->handleFilters($query, $args);
         $this->handleFacets($query, $args);
 
@@ -199,10 +199,10 @@ class Products extends AbstractResolver
 
     /**
      * @param QueryInterface $query
-     * @param $info
+     * @param $args
      * @throws LocalizedException
      */
-    public function handleSort($query, $info)
+    public function handleSort($query, $args)
     {
         $sortDir = 'ASC';
 
@@ -659,8 +659,7 @@ class Products extends AbstractResolver
 
     /**
      * @param $sort
-     *
-     * @return Field
+     * @return Document\Field
      * @throws LocalizedException
      */
     protected function prepareSortField($sort)
