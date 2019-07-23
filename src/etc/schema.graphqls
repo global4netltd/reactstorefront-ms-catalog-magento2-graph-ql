@@ -12,7 +12,7 @@ type Query {
     ): MsProducts @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Products") @doc(description: "The products query searches for products that match the criteria specified in the search and filter attributes")
     msCategories (
         ids: [Int] @doc(description: "Arrays of Ids of the categories")
-        level: [Int] @doc(description: "Level of the category")
+        levels: [Int] @doc(description: "Level of the category")
         children: Boolean @doc(description: "Children of the category")
     ): MsCategories @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Categories")
     attributes (

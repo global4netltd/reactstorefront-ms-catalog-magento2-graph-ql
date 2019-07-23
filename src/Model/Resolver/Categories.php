@@ -46,7 +46,7 @@ class Categories extends AbstractResolver
      */
     private function getLevel(array $args): array
     {
-        $levels = $args['level'] ?? [];
+        $levels = $args['levels'] ?? [];
         return array_map('intval', $levels);
     }
 
@@ -70,9 +70,16 @@ class Categories extends AbstractResolver
         $categories = [];
         $queryFields = $this->parseQueryFields($info);
         $categoryIds = $this->getCategoryIds($args);
-        $level = $this->getLevel($args);
-        if ($level || count($categoryIds)) {
-            $categories = $this->getCategoryFromSearchEngine($categoryIds, $level, isset($args['children']) ? true : false, $queryFields);
+        $levels = $this->getLevel($args);
+        $children = isset($args['children']) ? true : false;
+
+        if ($children) {
+            $childrenQueryFields = $info->getFieldSelection(3)['items']['children'] ?? [];
+            $queryFields = array_merge($queryFields, $childrenQueryFields);
+        }
+
+        if ($levels || count($categoryIds)) {
+            $categories = $this->getCategoryFromSearchEngine($categoryIds, $levels, $children, $queryFields);
         }
 
         if (!empty($categories)) {
@@ -100,18 +107,16 @@ class Categories extends AbstractResolver
     }
 
     /**
-     * @param array $ids
-     * @param null $level
+     * @param array $categoryIds
+     * @param null $levels
      * @param bool $children
      * @param array $queryFields
      * @return array
-     * @throws NoSuchEntityException
      * @throws LocalizedException
-     * @throws Exception
+     * @throws NoSuchEntityException
      */
-    public function getCategoryFromSearchEngine(array $ids = [], $level = null, $children = false, $queryFields = [])
+    public function getCategoryFromSearchEngine(array $categoryIds = [], $levels = null, $children = false, $queryFields = [])
     {
-        $categoryIds = implode(',', $ids);
         $categories = [];
         $storeId = $this->storeManager->getStore()->getId();
         $searchEngineConfig = $this->configHelper->getConfiguration();
@@ -133,9 +138,9 @@ class Categories extends AbstractResolver
             $fieldsToSelect[] = $this->queryHelper->getFieldByCategoryAttributeCode($attributeCode);
         }
 
-        if ($level) {
+        if ($levels) {
             $msCatalogForCategory->addFilter($this->queryHelper
-                ->getFieldByCategoryAttributeCode('level', $level));
+                ->getFieldByCategoryAttributeCode('level', $levels));
             $msCatalogForCategory->setPageSize(1000);
             $fieldsToSelect[] = $this->queryHelper->getFieldByCategoryAttributeCode('level');
             $queryFields['level'] = 1;
@@ -150,7 +155,7 @@ class Categories extends AbstractResolver
         } elseif ($categoryIds) {
             $msCatalogForCategory->addFilter($this->queryHelper
                 ->getFieldByCategoryAttributeCode('id', $categoryIds));
-            $msCatalogForCategory->setPageSize(count($ids));
+            $msCatalogForCategory->setPageSize(count($categoryIds));
         }
 
         $msCatalogForCategory->addFieldsToSelect($fieldsToSelect);
@@ -167,7 +172,7 @@ class Categories extends AbstractResolver
         if ($categoryResult->getNumFound()) {
             foreach ($categoryResult->getDocumentsCollection() as $category) {
                 $solrCategory = $this->prepareDocumentResult($category, $queryFields, 'mscategory');
-                if ($level) {
+                if ($levels) {
                     if (isset($solrCategory['parent_id']) && ($solrCategory['parent_id'] > 2)) {
                         $categories[$solrCategory['parent_id']]['children'][$solrCategory['id']] = $solrCategory;
                     } else {
