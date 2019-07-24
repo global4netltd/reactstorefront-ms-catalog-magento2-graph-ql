@@ -11,6 +11,7 @@ use G4NReact\MsCatalogMagento2\Helper\Config as ConfigHelper;
 use G4NReact\MsCatalogMagento2\Helper\Facets as FacetsHelper;
 use G4NReact\MsCatalogMagento2\Helper\Query;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Parser;
+use G4NReact\MsCatalogSolr\FieldHelper;
 use Magento\Catalog\Model\CategoryRepository;
 use Magento\Framework\App\CacheInterface;
 use Magento\Framework\App\DeploymentConfig;
@@ -149,14 +150,14 @@ class Products extends AbstractResolver
         if ((isset($this->resolveInfo['items']) && count($this->resolveInfo['items']) <= $limit && isset($this->resolveInfo['items']['sku']))
             || (isset($this->resolveInfo['items_ids']))
         ) {
-            $maxPageSize = 10000;
+            $maxPageSize = 1;
 
             $query->addFieldsToSelect([
                 $this->queryHelper->getFieldByAttributeCode('sku'),
             ]);
         } else {
             $this->handleFieldsToSelect($query, $info);
-            $maxPageSize = 100; // @todo this should depend on maximum page size in listing
+            $maxPageSize = 1; // @todo this should depend on maximum page size in listing
         }
 
         $pageSize = (isset($args['pageSize']) && ($args['pageSize'] < $maxPageSize)) ? $args['pageSize'] : $maxPageSize;
@@ -317,11 +318,28 @@ class Products extends AbstractResolver
                 'total_pages'  => $response->getNumFound()
             ],
             'facets'      => $this->prepareFacets($response->getFacets()),
-            'stats'       => $response->getStats(),
+            'stats'       => $this->prepareStats($response->getStats()),
             'debug_info'  => $debugInfo,
         ];
 
         return $data;
+    }
+
+    /**
+     * @param $stats
+     * @return array
+     */
+    public function prepareStats($stats)
+    {
+        $preparedStats = [];
+        foreach ($stats as $field => $value) {
+            $preparedStats[] = [
+                'code'   => FieldHelper::createFieldByResponseField($field, null)->getName(),
+                'values' => $value
+            ];
+        }
+
+        return $preparedStats;
     }
 
     /**
@@ -349,32 +367,6 @@ class Products extends AbstractResolver
         }
 
         return $preparedFacets;
-    }
-
-    /**
-     * @param $facets
-     * @return array
-     * @throws NoSuchEntityException
-     */
-    public function prepareFacetsAndStats($facets)
-    {
-        $solrFacets = [];
-
-        foreach ($facets as $key => $facet) {
-            if ($key === "virtual_category_params") {
-                $solrFacets['virtual_category_params'] = $this->prepareVirtualCategoryParamsAsFilter($facet);
-            } else {
-                if ($attributeCode = $this->getSolrAttributeCode($facet)) {
-                    if (strpos($attributeCode, '_facet') !== false) {
-                        $solrFacets['facet'][] = $attributeCode;
-                    } else {
-                        $solrFacets['stat'][] = $attributeCode;
-                    }
-                }
-            }
-        }
-
-        return $solrFacets;
     }
 
     /**
