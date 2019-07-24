@@ -167,7 +167,9 @@ class Products extends AbstractResolver
             $query->setQueryText($searchText);
         }
 
+        $this->eventManager->dispatch('prepare_msproduct_resolver_response_before', ['query' => $query]);
         $response = $query->getResponse();
+        $this->eventManager->dispatch('prepare_msproduct_resolver_response_after', ['response' => $response]);
 
         $products = $this->prepareResultData($response, $debug);
 
@@ -189,6 +191,21 @@ class Products extends AbstractResolver
             $facetFields = $this->facetsHelper->getFacetFieldsByCategory($categoryFilter['field']->getValue());
 //            $query->addFacets($facetFields);
             $query->addFacets($facetFields);
+
+            $statsFields = $this->facetsHelper->getStatsFieldsByCategory($categoryFilter['field']->getValue());
+            $query->addStats($statsFields);
+        }
+
+        if ($baseStats = $this->configHelper->getProductAttributesBaseStats()) {
+            foreach ($baseStats as $baseStat) {
+                $query->addStat($this->queryHelper->getFieldByAttributeCode($baseStat));
+            }
+        }
+
+        if ($baseFacets = $this->configHelper->getCategoryAttributesForceIndexingInReact()) {
+            foreach ($baseFacets as $baseFacet) {
+                $query->addFacet($this->queryHelper->getFieldByAttributeCode($baseFacet));
+            }
         }
 
         /**
@@ -208,16 +225,22 @@ class Products extends AbstractResolver
     {
         $sortDir = 'ASC';
 
+        if (isset($args['sort']['sort_order']) && in_array($args['sort']['sort_order'], ['ASC', 'DESC'])) {
+            $sortDir = $args['sort']['sort_order'];
+        }
+
         $sort = false;
         if (isset($args['sort']) && isset($args['sort']['sort_by'])) {
-            $sort = $this->prepareSortField($args['sort']['sort_by']);
+            $sort = $this->prepareSortField($args['sort']['sort_by'], $args['sort']['sort_order']);
         } elseif (isset($args['search']) && $args['search']) {
             $sort = $this->prepareSortField('score');
             $sortDir = 'DESC';
         }
 
+        $this->eventManager->dispatch('prepare_msproduct_resolver_sort_before_add', ['sort' => $sort, 'sortDir' => $sortDir]);
+
         if ($sort) {
-            $query->addSort($sort, $sortDir);
+            $query->addSort($sort);
         }
     }
 
@@ -269,10 +292,10 @@ class Products extends AbstractResolver
 
     /**
      * @param $response
-     * @param bool $debug
+     * @param $debug
      * @return array
      */
-    public function prepareResultData($response, $debug = false)
+    public function prepareResultData($response, $debug)
     {
         $debugInfo = [];
         if ($debug) {
@@ -295,7 +318,7 @@ class Products extends AbstractResolver
             ],
             'facets'      => $this->prepareFacets($response->getFacets()),
             'stats'       => $response->getStats(),
-            'debug_info' => $debugInfo,
+            'debug_info'  => $debugInfo,
         ];
 
         return $data;
@@ -602,6 +625,7 @@ class Products extends AbstractResolver
                 $preparedFilters[] = [$field];
             }
         }
+
         return $preparedFilters;
     }
 
@@ -672,11 +696,12 @@ class Products extends AbstractResolver
 
     /**
      * @param $sort
+     * @param string $sortDir
      * @return Document\Field
      * @throws LocalizedException
      */
-    protected function prepareSortField($sort)
+    protected function prepareSortField($sort, $sortDir = 'DESC')
     {
-        return $this->queryHelper->getFieldByAttributeCode($sort);
+        return $this->queryHelper->getFieldByAttributeCode($sort, $sortDir);
     }
 }
