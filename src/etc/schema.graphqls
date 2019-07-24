@@ -9,11 +9,13 @@ type Query {
         pageSize: Int @doc(description: "Specifies the maximum number of results to return at once. This attribute is optional."),
         currentPage: Int = 0 @doc(description: "Specifies which page of results to return. The default value is 0."),
         sort: MsProductSortInput @doc(description: "Specifies which attribute to sort on, and whether to return the results in ascending or descending order.")
+        debug: Boolean
     ): MsProducts @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Products") @doc(description: "The products query searches for products that match the criteria specified in the search and filter attributes")
     msCategories (
         ids: [Int] @doc(description: "Arrays of Ids of the categories")
         levels: [Int] @doc(description: "Level of the category")
         children: Boolean @doc(description: "Children of the category")
+        debug: Boolean
     ): MsCategories @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Categories")
     attributes (
         attributeCodes: [String] @doc(description: "List of attribute codes")
@@ -78,6 +80,7 @@ type MsProducts @doc(description: "The Products object is the top-level object r
     total_count: Int @doc(description: "The number of products returned")
     facets: [MsProductFacets] @doc(description: "The array of filters with the number of occurrences that match the specified search criteria")
     stats: [MsProductStats] @doc(description: "The array of range filters with the number of occurrences that match the specified search criteria")
+    debug_info: DebugInfo
 }
 
 type MsProductFacets @doc(description: "The Facet object returned in a product search") {
@@ -109,6 +112,7 @@ type ProductAttribute @doc(description: "Product attribute contains attribute co
 
 type MsCategories {
     items: [MsCategory]
+    debug_info: DebugInfo
 }
 
 type MsCategory implements MsCategoryInterface @doc(description: "Category implementation") {
@@ -175,4 +179,15 @@ type MsCmsPage @doc(description: "CMS page defines all CMS page information") {
     meta_title: String @doc(description: "CMS page meta title")
     meta_description: String @doc(description: "CMS page meta description")
     meta_keywords: String @doc(description: "CMS page meta keywords")
+}
+
+type DebugInfo {
+    omitHeader: String
+    wt: String
+    q: String
+    start: Int
+    rows: Int
+    fl: String
+    fq: [String]
+    uri: String
 }

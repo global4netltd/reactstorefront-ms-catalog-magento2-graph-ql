@@ -132,6 +132,8 @@ class Products extends AbstractResolver
             );
         }
 
+        $debug = isset($args['debug']) && $args['debug'];
+
         $searchEngineConfig = $this->configHelper->getConfiguration();
         $searchEngineClient = ClientFactory::create($searchEngineConfig);
 
@@ -167,7 +169,7 @@ class Products extends AbstractResolver
 
         $response = $query->getResponse();
 
-        $products = $this->prepareResultData($response);
+        $products = $this->prepareResultData($response, $debug);
 
         // set args to context for eager loading etc. purposes
         $context->msProductsArgs = $args;
@@ -267,10 +269,18 @@ class Products extends AbstractResolver
 
     /**
      * @param $response
+     * @param bool $debug
      * @return array
      */
-    public function prepareResultData($response)
+    public function prepareResultData($response, $debug = false)
     {
+        $debugInfo = [];
+        if ($debug) {
+            $debugQuery = $response->getDebugInfo();
+            $debugInfo = $debugQuery['params'] ?? [];
+            $debugInfo['uri'] = $debugQuery['uri'] ?? '';
+        }
+
         $products = $this->getProducts($response->getDocumentsCollection());
         $data = [
             'total_count' => $response->getNumFound(),
@@ -282,7 +292,8 @@ class Products extends AbstractResolver
                 'total_pages'  => $response->getNumFound()
             ],
             'facets'      => $this->prepareFacets($response->getFacets()),
-            'stats'       => $response->getStats()
+            'stats'       => $response->getStats(),
+            'debug_info' => $debugInfo,
         ];
 
         return $data;

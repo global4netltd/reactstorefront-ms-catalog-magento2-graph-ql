@@ -67,11 +67,12 @@ class Categories extends AbstractResolver
             throw new GraphQlInputException(__('"id or level for category should be specified'));
         }
 
-        $categories = [];
+        $result = [];
         $queryFields = $this->parseQueryFields($info);
         $categoryIds = $this->getCategoryIds($args);
         $levels = $this->getLevel($args);
         $children = isset($args['children']) ? true : false;
+        $debug = isset($args['debug']) && $args['debug'];
 
         if ($children) {
             $childrenQueryFields = $info->getFieldSelection(3)['items']['children'] ?? [];
@@ -79,11 +80,20 @@ class Categories extends AbstractResolver
         }
 
         if ($levels || count($categoryIds)) {
-            $categories = $this->getCategoryFromSearchEngine($categoryIds, $levels, $children, $queryFields);
+            $result = $this->getCategoryFromSearchEngine($categoryIds, $levels, $children, $queryFields, $debug);
         }
 
-        if (!empty($categories)) {
-            return ['items' => $categories];
+        if (!empty($result)) {
+
+            $items = (isset($result['categories']) && $result['categories']) ? $result['categories'] : [];
+            $debugInfo = $result['debug_info'] ?? [];
+
+            if ($items || $debugInfo) {
+                return [
+                    'items'      => $items,
+                    'debug_info' => $debugInfo,
+                ];
+            }
         }
 
         return new Document();
@@ -115,7 +125,7 @@ class Categories extends AbstractResolver
      * @throws LocalizedException
      * @throws NoSuchEntityException
      */
-    public function getCategoryFromSearchEngine(array $categoryIds = [], $levels = null, $children = false, $queryFields = [])
+    public function getCategoryFromSearchEngine(array $categoryIds = [], $levels = null, $children = false, $queryFields = [], $debug = false)
     {
         $categories = [];
         $storeId = $this->storeManager->getStore()->getId();
@@ -168,6 +178,12 @@ class Categories extends AbstractResolver
         ]);
 
         $categoryResult = $msCatalogForCategory->getResponse();
+        $debugInfo = [];
+        if ($debug) {
+            $debugQuery = $categoryResult->getDebugInfo();
+            $debugInfo = $debugQuery['params'] ?? [];
+            $debugInfo['uri'] = $debugQuery['uri'] ?? '';
+        }
 
         if ($categoryResult->getNumFound()) {
             foreach ($categoryResult->getDocumentsCollection() as $category) {
@@ -208,6 +224,9 @@ class Categories extends AbstractResolver
             }
         }
 
-        return $categories;
+        return [
+            'categories' => $categories,
+            'debug_info' => $debugInfo,
+        ];
     }
 }
