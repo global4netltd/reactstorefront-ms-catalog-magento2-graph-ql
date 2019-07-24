@@ -190,4 +190,6 @@ type DebugInfo {
     fl: String
     fq: [String]
     uri: String
+    code: Int
+    message: String
 }

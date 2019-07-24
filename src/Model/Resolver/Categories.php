@@ -182,6 +182,8 @@ class Categories extends AbstractResolver
         if ($debug) {
             $debugQuery = $categoryResult->getDebugInfo();
             $debugInfo = $debugQuery['params'] ?? [];
+            $debugInfo['code'] = $debugQuery['code'] ?? 0;
+            $debugInfo['message'] = $debugQuery['message'] ?? '';
             $debugInfo['uri'] = $debugQuery['uri'] ?? '';
         }
 
