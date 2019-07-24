@@ -150,14 +150,14 @@ class Products extends AbstractResolver
         if ((isset($this->resolveInfo['items']) && count($this->resolveInfo['items']) <= $limit && isset($this->resolveInfo['items']['sku']))
             || (isset($this->resolveInfo['items_ids']))
         ) {
-            $maxPageSize = 1;
+            $maxPageSize = 10000;
 
             $query->addFieldsToSelect([
                 $this->queryHelper->getFieldByAttributeCode('sku'),
             ]);
         } else {
             $this->handleFieldsToSelect($query, $info);
-            $maxPageSize = 1; // @todo this should depend on maximum page size in listing
+            $maxPageSize = 100; // @todo this should depend on maximum page size in listing
         }
 
         $pageSize = (isset($args['pageSize']) && ($args['pageSize'] < $maxPageSize)) ? $args['pageSize'] : $maxPageSize;
