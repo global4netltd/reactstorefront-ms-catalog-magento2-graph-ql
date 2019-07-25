@@ -177,7 +177,7 @@ class Categories extends AbstractResolver
 
         $msCatalogForCategory->addFieldsToSelect($fieldsToSelect);
 
-        $msCatalogForCategory->setSort([
+        $msCatalogForCategory->setSorts([
             $this->queryHelper
                 ->getFieldByCategoryAttributeCode('level', 'ASC'),
             $this->queryHelper
