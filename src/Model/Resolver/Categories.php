@@ -7,6 +7,7 @@ use Exception;
 use G4NReact\MsCatalog\Client\ClientFactory;
 use G4NReact\MsCatalog\Document;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Parser;
+use Magento\Framework\DataObject;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\GraphQl\Config\Element\Field;
@@ -89,11 +90,17 @@ class Categories extends AbstractResolver
             $debugInfo = $result['debug_info'] ?? [];
 
             if ($items || $debugInfo) {
-                return [
+                $result = [
                     'items'      => $items,
                     'debug_info' => $debugInfo,
                 ];
             }
+
+            $resultObject = new DataObject(['result' => $result]);
+
+            $this->eventManager->dispatch(self::CATEGORY_OBJECT_TYPE . '_resolver_result_return_before', ['result' => $resultObject]);
+
+            return $resultObject->getData('result');
         }
 
         return new Document();

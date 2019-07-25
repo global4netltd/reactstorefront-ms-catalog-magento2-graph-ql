@@ -7,6 +7,7 @@ use G4NReact\MsCatalogMagento2\Helper\Query;
 use G4NReact\MsCatalogMagento2\Helper\Config as ConfigHelper;
 use Magento\Framework\App\CacheInterface;
 use Magento\Framework\App\DeploymentConfig;
+use Magento\Framework\DataObject;
 use Magento\Framework\Event\Manager as EventManager;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;
@@ -132,9 +133,11 @@ abstract class AbstractResolver implements ResolverInterface
             $data[$fieldName] = $this->parseToString($documentData->getFieldValue($fieldName));
         }
 
-        $this->eventManager->dispatch('prepare_' . $eventType . '_resolver_result_after', ['documentData' => $documentData]);
+        $dataObject = new DataObject(['data' => $data]);
 
-        return $data;
+        $this->eventManager->dispatch('prepare_' . $eventType . '_resolver_result_after', ['preparedData' => $dataObject]);
+
+        return $dataObject->getData('data');
     }
 
     /**
