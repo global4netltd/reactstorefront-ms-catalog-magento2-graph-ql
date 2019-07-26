@@ -13,6 +13,7 @@ use G4NReact\MsCatalogMagento2\Helper\Query;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Parser;
 use G4NReact\MsCatalogSolr\FieldHelper;
 use Magento\Catalog\Model\CategoryRepository;
+use Magento\Catalog\Model\Product\Attribute\Source\Status;
 use Magento\Framework\App\CacheInterface;
 use Magento\Framework\App\DeploymentConfig;
 use Magento\Framework\Event\Manager as EventManager;
@@ -284,13 +285,31 @@ class Products extends AbstractResolver
                 'product',
                 'catalog_category'
             )],
+            [$this->queryHelper->getFieldByAttributeCode(
+                'visibility',
+                $this->prepareFilterValue(['gt' => 1])
+            )]
         ]);
+        
+        $this->addOutOfStockFilterProducts($query);
 
         if (isset($args['filter']) && ($filters = $this->prepareFiltersByArgsFilter($args['filter']))) {
             $query->addFilters($filters);
         }
     }
 
+    /**
+     * @param QueryInterface $query
+     */
+    protected function addOutOfStockFilterProducts(&$query)
+    {
+        if (!$this->configHelper->getShowOutOfStockProducts()) {
+            $query->addFilter(
+                $this->queryHelper->getFieldByAttributeCode('status', Status::STATUS_ENABLED)
+            );
+        }
+    }
+    
     /**
      * @param $response
      * @param $debug
@@ -649,12 +668,10 @@ class Products extends AbstractResolver
     /**
      * @param array $value
      *
-     * @return string
+     * @return array|Document\FieldValue|string
      */
     protected function prepareFilterValue(array $value)
     {
-        return $value;
-
         // temporary leave below
 
         $key = key($value);
@@ -670,13 +687,13 @@ class Products extends AbstractResolver
                 case 'eq':
                     return (string)$value[$key];
                 case 'gt':
-                    return (string)($value[$key] + 1) . '-*';
+                    return new Document\FieldValue(null, $value[$key] + 1, Document\FieldValue::IFINITY_CHARACTER);
                 case 'lt':
-                    return (string)'*-' . ($value[$key] - 1);
+                    return new Document\FieldValue(null, Document\FieldValue::IFINITY_CHARACTER, $value[$key] - 1);
                 case 'gteq':
-                    return (string)$value[$key] . '-*';
+                    return new Document\FieldValue(null, $value[$key], Document\FieldValue::IFINITY_CHARACTER);
                 case 'lteq':
-                    return (string)'*-' . $value[$key];
+                    return new Document\FieldValue(null, Document\FieldValue::IFINITY_CHARACTER, $value[$key]);
                 default:
                     return (string)$value[$key];
 
