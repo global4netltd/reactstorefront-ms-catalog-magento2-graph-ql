@@ -300,8 +300,9 @@ class Products extends AbstractResolver
 
     /**
      * @param QueryInterface $query
+     * @throws LocalizedException
      */
-    protected function addOutOfStockFilterProducts(&$query)
+    protected function addOutOfStockFilterProducts($query)
     {
         if (!$this->configHelper->getShowOutOfStockProducts()) {
             $query->addFilter(
