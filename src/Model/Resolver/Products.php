@@ -270,10 +270,6 @@ class Products extends AbstractResolver
      */
     public function handleFilters($query, $args)
     {
-//        if (isset($args['filter'])) {
-//            $args['filter'] = $this->getFilters($args['filter']);
-//        }
-
         $query->addFilters([
             [$this->queryHelper->getFieldByAttributeCode(
                 'store_id',
@@ -300,6 +296,7 @@ class Products extends AbstractResolver
 
     /**
      * @param QueryInterface $query
+     * @throws LocalizedException
      */
     protected function addOutOfStockFilterProducts(&$query)
     {
@@ -389,43 +386,6 @@ class Products extends AbstractResolver
     }
 
     /**
-     * @param $filters
-     * @param $mapping
-     * @return array
-     * @throws NoSuchEntityException
-     */
-    public function getFilters($filters, $mapping = true)
-    {
-        $resultParams = [];
-        if ($mapping) {
-            $params = $this->parameterMapping($filters);
-        } else {
-            $params = $filters;
-        }
-
-        foreach ($params as $param) {
-            if (is_array($param)) {
-                array_push($resultParams, $this->getFilters($param, $mapping));
-                continue;
-            }
-            $codeAndValue = explode('=', $param);
-            $attributeCode = $codeAndValue[0];
-            if (isset($codeAndValue[1]) && ($codeAndValue[1])) {
-                $attributeValue = $codeAndValue[1];
-                if (in_array($attributeCode, self::$attributeMapping)) {
-                    $resultParams[] = $param;
-                    continue;
-                }
-                if ($solrAttributeCode = $this->getSolrAttributeCode($attributeCode)) {
-                    $resultParams[$attributeCode] = $solrAttributeCode . '=' . $attributeValue;
-                }
-            }
-        }
-
-        return $resultParams;
-    }
-
-    /**
      * @param array $solrAttributes
      * @return array
      */
@@ -440,87 +400,6 @@ class Products extends AbstractResolver
 
         return $newSolrAttributes;
     }
-
-    /**
-     * @param $filters
-     * @return array
-     */
-    public function parameterMapping($filters)
-    {
-        $params = [];
-
-        foreach ($filters as $key => $filter) {
-            switch ($key) {
-                case 'id_type':
-                    break;
-                case in_array($key, array_keys(self::$attributeMapping)):
-                    $preparedFilter = $this->prepareFilter($filter, self::$attributeMapping[$key]);
-                    if ($key == 'sku') {
-                        $preparedFilter = str_replace('-', '\-', $preparedFilter);
-                    }
-                    $params[] = $preparedFilter;
-                    break;
-                case 'ids':
-                    if ($filterValue = Parser::parseFilterValueNumeric(implode(',', array_filter($filter)))) {
-                        $params[] = 'object_id=' . preg_replace('/[,]{2,}/i', ',', rtrim($filterValue, ','));
-                    }
-                    break;
-                case 'skus':
-                    if ($filterValue = Parser::parseFilterValueNumeric(implode(',', array_filter($filter)))) {
-                        $skus = 'sku_s=' . preg_replace('/[,]{2,}/i', ',', rtrim($filterValue, ','));
-                        $params[] = str_replace('-', '\-', $skus);
-                    }
-                    break;
-                case 'custom':
-                    $customFilters = [];
-                    foreach ($filter as $customFilter) {
-                        if ($code = Parser::parseFilter($customFilter['code'])) {
-                            $customFilters[$code][] = $this->prepareFilter($customFilter['input']);
-                        }
-                    }
-
-                    foreach ($customFilters as $code => $values) {
-                        if ($filterValue = Parser::parseFilterValue(implode(',', $values))) {
-                            $params[] = $code . '=' . $filterValue;
-                        }
-                    }
-                    break;
-                case 'attributes':
-                    $params = array_merge($params, Parser::parseFilters($filter));
-                    break;
-                default:
-                    if ($key = Parser::parseFilter($key)) {
-                        $params[] = $this->prepareFilter($filter, $key);
-                    }
-            }
-        }
-
-        return $params;
-    }
-
-    /**
-     * @param $filter
-     * @param null $code
-     * @return string
-     */
-    public function prepareFilter($filter, $code = null)
-    {
-        $queryFilter = [];
-
-        foreach ($filter as $op => $value) {
-            $value = Parser::parseFilter($value);
-            if ($value && $op == 'eq') {
-                $queryFilter[] = $value;
-            }
-        }
-
-        if ($code) {
-            return $code . '=' . implode(',', $queryFilter);
-        }
-
-        return implode(',', $queryFilter);
-    }
-
     /**
      * @param $documentCollection
      * @param string $idType
@@ -554,22 +433,6 @@ class Products extends AbstractResolver
         ksort($products);
 
         return ['items' => $products, 'items_ids' => $productIds];
-    }
-
-    /**
-     * @param $filters
-     * @return array
-     */
-    public function getActiveAttributesCode($filters)
-    {
-        $activeAttributesCode = [];
-
-        foreach ($filters as $filter) {
-            $codeAndValue = explode('=', $filter);
-            $activeAttributesCode[] = $codeAndValue[0];
-        }
-
-        return $activeAttributesCode;
     }
 
     /**
