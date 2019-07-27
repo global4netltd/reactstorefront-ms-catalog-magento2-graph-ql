@@ -286,7 +286,7 @@ class Products extends AbstractResolver
                 $this->prepareFilterValue(['gt' => 1])
             )]
         ]);
-        
+
         $this->addOutOfStockFilterProducts($query);
 
         if (isset($args['filter']) && ($filters = $this->prepareFiltersByArgsFilter($args['filter']))) {
@@ -306,7 +306,7 @@ class Products extends AbstractResolver
             );
         }
     }
-    
+
     /**
      * @param $response
      * @param $debug
@@ -370,16 +370,20 @@ class Products extends AbstractResolver
             $preparedValues = [];
 
             foreach ($values as $valueId => $count) {
-                $preparedValues[] = [
-                    'value_id' => $valueId,
-                    'count'    => $count
-                ];
+                if ($valueId) {
+                    $preparedValues[] = [
+                        'value_id' => $valueId,
+                        'count'    => $count
+                    ];
+                }
             }
 
-            $preparedFacets[] = [
-                'code'   => $field,
-                'values' => $preparedValues
-            ];
+            if ($preparedValues) {
+                $preparedFacets[] = [
+                    'code'   => $field,
+                    'values' => $preparedValues
+                ];
+            }
         }
 
         return $preparedFacets;
