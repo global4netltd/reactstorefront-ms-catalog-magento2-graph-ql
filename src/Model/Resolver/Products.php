@@ -140,8 +140,8 @@ class Products extends AbstractResolver
         $searchEngineClient = ClientFactory::create($searchEngineConfig);
 
         $query = $searchEngineClient->getQuery();
-        $this->handleSort($query, $args);
         $this->handleFilters($query, $args);
+        $this->handleSort($query, $args);
         $this->handleFacets($query, $args);
 
         $this->resolveInfo = $info->getFieldSelection(3);
@@ -239,11 +239,13 @@ class Products extends AbstractResolver
             $sortDir = 'DESC';
         }
 
-        $this->eventManager->dispatch('prepare_msproduct_resolver_sort_before_add', ['sort' => $sort, 'sortDir' => $sortDir]);
+        $this->eventManager->dispatch('prepare_msproduct_resolver_sort_add_before', ['sort' => $sort, 'sortDir' => $sortDir]);
 
         if ($sort) {
             $query->addSort($sort);
         }
+
+        $this->eventManager->dispatch('prepare_msproduct_resolver_sort_add_after', ['query' => $query]);
     }
 
     /**
@@ -271,17 +273,15 @@ class Products extends AbstractResolver
     public function handleFilters($query, $args)
     {
         $query->addFilters([
-            [$this->queryHelper->getFieldByAttributeCode(
+            [$this->queryHelper->getFieldByProductAttributeCode(
                 'store_id',
-                $this->storeManager->getStore()->getId(),
-                'catalog_category'
+                $this->storeManager->getStore()->getId()
             )],
-            [$this->queryHelper->getFieldByAttributeCode(
+            [$this->queryHelper->getFieldByProductAttributeCode(
                 'object_type',
-                'product',
-                'catalog_category'
+                'product'
             )],
-            [$this->queryHelper->getFieldByAttributeCode(
+            [$this->queryHelper->getFieldByProductAttributeCode(
                 'visibility',
                 $this->prepareFilterValue(['gt' => 1])
             )]
@@ -302,7 +302,7 @@ class Products extends AbstractResolver
     {
         if (!$this->configHelper->getShowOutOfStockProducts()) {
             $query->addFilter(
-                $this->queryHelper->getFieldByAttributeCode('status', Status::STATUS_ENABLED)
+                $this->queryHelper->getFieldByProductAttributeCode('status', Status::STATUS_ENABLED)
             );
         }
     }
@@ -499,7 +499,7 @@ class Products extends AbstractResolver
             if ($key === 'attributes') {
                 $preparedFilters = array_merge($preparedFilters, $this->prepareAttributes($filter));
             } else {
-                $field = $this->queryHelper->getFieldByAttributeCode($key, $filter);
+                $field = $this->queryHelper->getFieldByProductAttributeCode($key, $filter);
                 $preparedFilters[] = [$field];
             }
         }

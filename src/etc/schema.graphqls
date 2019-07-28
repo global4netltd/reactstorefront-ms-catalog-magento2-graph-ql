@@ -185,6 +185,7 @@ type DebugInfo {
     omitHeader: String
     wt: String
     q: String
+    sort: String
     start: Int
     rows: Int
     fl: String
