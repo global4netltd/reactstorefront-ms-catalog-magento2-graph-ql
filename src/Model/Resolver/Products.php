@@ -204,7 +204,7 @@ class Products extends AbstractResolver
             }
         }
 
-        if ($baseFacets = $this->configHelper->getCategoryAttributesForceIndexingInReact()) {
+        if ($baseFacets = $this->configHelper->getProductAttributesBaseFacets()) {
             foreach ($baseFacets as $baseFacet) {
                 $query->addFacet($this->queryHelper->getFieldByAttributeCode($baseFacet));
             }
