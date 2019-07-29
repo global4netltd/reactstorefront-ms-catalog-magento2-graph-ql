@@ -16,6 +16,7 @@ use Magento\Catalog\Model\CategoryRepository;
 use Magento\Catalog\Model\Product\Attribute\Source\Status;
 use Magento\Framework\App\CacheInterface;
 use Magento\Framework\App\DeploymentConfig;
+use Magento\Framework\DataObject;
 use Magento\Framework\Event\Manager as EventManager;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
@@ -173,13 +174,16 @@ class Products extends AbstractResolver
         $response = $query->getResponse();
         $this->eventManager->dispatch('prepare_msproduct_resolver_response_after', ['response' => $response]);
 
-        $products = $this->prepareResultData($response, $debug);
+        $result = $this->prepareResultData($response, $debug);
+
+        $resultObject = new DataObject(['result' => $result]);
+        $this->eventManager->dispatch(self::PRODUCT_OBJECT_TYPE . '_resolver_result_return_before', ['result' => $resultObject]);
 
         // set args to context for eager loading etc. purposes
         $context->msProductsArgs = $args;
-        $context->msProducts = $products;
+        $context->msProducts = $result;
 
-        return $products;
+        return $result;
     }
 
     /**
