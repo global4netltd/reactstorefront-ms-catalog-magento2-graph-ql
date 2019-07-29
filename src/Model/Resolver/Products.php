@@ -170,14 +170,23 @@ class Products extends AbstractResolver
             $query->setQueryText($searchText);
         }
 
-        $this->eventManager->dispatch('prepare_msproduct_resolver_response_before', ['query' => $query]);
+        $this->eventManager->dispatch(
+            'prepare_msproduct_resolver_response_before',
+            ['query' => $query, 'resolve_info' => $info]
+        );
         $response = $query->getResponse();
-        $this->eventManager->dispatch('prepare_msproduct_resolver_response_after', ['response' => $response]);
+        $this->eventManager->dispatch(
+            'prepare_msproduct_resolver_response_after',
+            ['response' => $response]
+        );
 
         $result = $this->prepareResultData($response, $debug);
 
         $resultObject = new DataObject(['result' => $result]);
-        $this->eventManager->dispatch(self::PRODUCT_OBJECT_TYPE . '_resolver_result_return_before', ['result' => $resultObject]);
+        $this->eventManager->dispatch(
+            self::PRODUCT_OBJECT_TYPE . '_resolver_result_return_before',
+            ['result' => $resultObject]
+        );
 
         // set args to context for eager loading etc. purposes
         $context->msProductsArgs = $args;
