@@ -147,6 +147,7 @@ interface MsCategoryInterface @typeResolver(class: "Magento\\CatalogGraphQl\\Mod
     @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Products")
     children: [MsCategory] @doc(description: "Category children array")
     children_count: Int @doc(description: "Category children count")
+    product_count: Int @doc(description: "Category product count")
     solr_facets: [String] @doc(description: "The attribute to use for filters")
     seo_robots: String @doc(description: "Robots for meta data")
 }
