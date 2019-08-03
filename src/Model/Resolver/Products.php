@@ -129,6 +129,16 @@ class Products extends AbstractResolver
         array $value = null,
         array $args = null
     ) {
+        if ($context->args) {
+            $argsFromContext = $context->args;
+            $args = $args ?: [];
+            if ($argsFromContext['overwrite_args'] ?? false) {
+                $args = array_merge($args, $context->args);
+            } else {
+                $args = array_merge($context->args, $args);
+            }
+        }
+
         if (!isset($args['search']) && !isset($args['filter'])) {
             throw new GraphQlInputException(
                 __("'search' or 'filter' input argument is required.")
@@ -181,6 +191,9 @@ class Products extends AbstractResolver
         );
 
         $result = $this->prepareResultData($response, $debug);
+
+//        var_dump($response->getDebugInfo());
+//        die;
 
         $resultObject = new DataObject(['result' => $result]);
         $this->eventManager->dispatch(

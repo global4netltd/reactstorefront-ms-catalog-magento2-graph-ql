@@ -104,15 +104,13 @@ abstract class AbstractResolver implements ResolverInterface
      * @param array|null $args
      * @return mixed|Value
      */
-    public function resolve(
+    public abstract function resolve(
         Field $field,
         $context,
         ResolveInfo $info,
         array $value = null,
         array $args = null
-    ) {
-        return null;
-    }
+    );
 
     /**
      * @param Document $documentData

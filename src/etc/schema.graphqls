@@ -17,6 +17,10 @@ type Query {
         children: Boolean @doc(description: "Children of the category")
         debug: Boolean
     ): MsCategories @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Categories")
+    msSearch (
+        query: String! @doc(description: "Search text")
+        autosuggest: Boolean! @doc(description: "")
+    ): MsSearch @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Search")
     attributes (
         attributeCodes: [String] @doc(description: "List of attribute codes")
     ): Attributes @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Attribute") @doc(description: "The attributes query returns information about attributes and options")
@@ -52,8 +56,8 @@ enum IdTypeEnum @doc(description: "This enumeration indicates whether to return 
 type MsProductData @doc(description: "The ProductInterface contains attributes that are common to all types of products. Note that descriptions may not be available for custom and EAV attributes.") {
     id: Int @doc(description: "The ID number")
     sku: String @doc(description: "A number or code assigned to a product to identify the product, options, price, and manufacturer")
-    type_id: String @dos(description: "Product type")
-    product_type: Int @dos(description: "Product type from synchronization")
+    type_id: String @doc(description: "Product type")
+    product_type: Int @doc(description: "Product type from synchronization")
     name: String @doc(description: "The product name. Customers use this name to identify the product.")
     description: String @doc(description: "The product description.")
     price: Float @doc(description: "Price of the product")
@@ -150,6 +154,24 @@ interface MsCategoryInterface @typeResolver(class: "Magento\\CatalogGraphQl\\Mod
     product_count: Int @doc(description: "Category product count")
     solr_facets: [String] @doc(description: "The attribute to use for filters")
     seo_robots: String @doc(description: "Robots for meta data")
+}
+
+type MsSearch @doc(description: "Search Term") {
+    redirect: urlResolver @doc(description: "")
+    msProducts (
+        filter: MsProductFilterInput @doc(description: "Identifies which product attributes to search for and return."),
+        facet: Boolean @doc(description: "Specifies which attributes we need to obtain the number of occurrences in the filters"),
+        pageSize: Int @doc(description: "Specifies the maximum number of results to return at once. This attribute is optional."),
+        currentPage: Int = 0 @doc(description: "Specifies which page of results to return. The default value is 0.")
+        sort: MsProductSortInput @doc(description: "Specifies which attribute to sort on, and whether to return the results in ascending or descending order.")
+    ): MsProducts @doc(description: "The products query searches for products that match the criteria specified in the search and filter attributes")
+    @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Products")
+}
+
+type urlResolver @doc(description: "") {
+    type: String @doc(description: "Type of redirect")
+    id: Int @doc(description: "Id umber")
+    canonical_url: String @doc(description: "Canonical url")
 }
 
 type Attributes @doc(description: "List of attributes") {
