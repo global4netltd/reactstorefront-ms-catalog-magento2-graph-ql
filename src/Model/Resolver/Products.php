@@ -22,6 +22,7 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Exception\GraphQlInputException;
+use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Store\Model\StoreManagerInterface;
@@ -112,7 +113,7 @@ class Products extends AbstractResolver
 
     /**
      * @param Field $field
-     * @param $context
+     * @param ContextInterface $context
      * @param ResolveInfo $info
      * @param array|null $value
      * @param array|null $args
@@ -129,7 +130,7 @@ class Products extends AbstractResolver
         array $value = null,
         array $args = null
     ) {
-        if ($context->args) {
+        if (isset($context->args)) {
             $argsFromContext = $context->args;
             $args = $args ?: [];
             if ($argsFromContext['overwrite_args'] ?? false) {
@@ -138,6 +139,18 @@ class Products extends AbstractResolver
                 $args = array_merge($context->args, $args);
             }
         }
+
+        $resolveObject = new DataObject([
+            'field' => $field,
+            'context' => $context,
+            'resolve_info' => $info,
+            'value' => $value,
+            'args' => $args
+        ]);
+        $this->eventManager->dispatch(
+            self::PRODUCT_OBJECT_TYPE . '_resolver_resolve_before',
+            ['resolve' => $resolveObject]
+        );
 
         if (!isset($args['search']) && !isset($args['filter'])) {
             throw new GraphQlInputException(
@@ -192,9 +205,6 @@ class Products extends AbstractResolver
 
         $result = $this->prepareResultData($response, $debug);
 
-//        var_dump($response->getDebugInfo());
-//        die;
-
         $resultObject = new DataObject(['result' => $result]);
         $this->eventManager->dispatch(
             self::PRODUCT_OBJECT_TYPE . '_resolver_result_return_before',
@@ -205,7 +215,7 @@ class Products extends AbstractResolver
         $context->msProductsArgs = $args;
         $context->msProducts = $result;
 
-        return $result;
+        return $resultObject->getData('result');
     }
 
     /**
