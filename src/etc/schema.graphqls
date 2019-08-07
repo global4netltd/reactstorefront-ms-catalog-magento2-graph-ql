@@ -63,7 +63,6 @@ type MsProductData @doc(description: "The ProductInterface contains attributes t
     price: Float @doc(description: "Price of the product")
     special_price: Float @doc(description: "Special price of the product")
     final_price: Float @doc(description: "Final price of the product")
-    has_special_price: Boolean @doc(description: "If product has special price")
     url: String @doc(description: "Url for product")
     url_key: String @doc(description: "Url key for product")
     request_path: String @doc(description: "Request path for product")
@@ -75,6 +74,9 @@ type MsProductData @doc(description: "The ProductInterface contains attributes t
     media_gallery: String @doc(description: "Product media gallery")
     attributes: [ProductAttribute] @doc(description: "Product attributes")
     category_id: [Int] @doc(description: "Product category ids")
+    meta_title: String @doc(description: "Product meta title")
+    meta_description: String @doc(description: "Product meta description")
+    meta_keywords: String @doc(description: "Product meta keywords")
 }
 
 type MsProducts @doc(description: "The Products object is the top-level object returned in a product search") {
