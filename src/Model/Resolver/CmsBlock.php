@@ -2,12 +2,18 @@
 
 namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
 
+use G4NReact\MsCatalogMagento2\Helper\Cms\CmsBlockField;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\GraphQl\Query\Resolver\Value;
 use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;
+use G4NReact\MsCatalog\Client\ClientFactory;
 
+/**
+ * Class CmsBlock
+ * @package G4NReact\MsCatalogMagento2GraphQl\Model\Resolver
+ */
 class CmsBlock extends AbstractResolver
 {
     /**
@@ -64,7 +70,7 @@ class CmsBlock extends AbstractResolver
             ],
             [
                 $this->queryHelper->getFieldByCmsBlockColumnName(
-                    'object_type', HelperCmsField::OBJECT_TYPE
+                    'object_type', CmsBlockField::OBJECT_TYPE
                 ),
             ],
             [
