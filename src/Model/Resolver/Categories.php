@@ -108,6 +108,8 @@ class Categories extends AbstractResolver
                 ];
             }
 
+//            print_r($result);die;
+
             $resultObject = new DataObject(['result' => $result]);
             $this->eventManager->dispatch(self::CATEGORY_OBJECT_TYPE . '_resolver_result_return_before', ['result' => $resultObject]);
 
@@ -196,6 +198,7 @@ class Categories extends AbstractResolver
         ]);
 
         $categoryResult = $msCatalogForCategory->getResponse();
+
         $debugInfo = [];
         if ($debug) {
             $debugQuery = $categoryResult->getDebugInfo();
@@ -209,7 +212,7 @@ class Categories extends AbstractResolver
             foreach ($categoryResult->getDocumentsCollection() as $category) {
                 $solrCategory = $this->prepareDocumentResult($category, $queryFields, 'mscategory');
                 if ($levels) {
-                    if (isset($solrCategory['parent_id']) && ($solrCategory['parent_id'] > 2)) {
+                    if (isset($solrCategory['parent_id']) && ($solrCategory['parent_id'] >2)) {
                         $categories[$solrCategory['parent_id']]['children'][$solrCategory['id']] = $solrCategory;
                     } else {
                         if (isset($categories[$solrCategory['id']])) {
@@ -230,17 +233,6 @@ class Categories extends AbstractResolver
                 } else {
                     $categories[] = $solrCategory;
                 }
-            }
-        }
-
-        if ($children) {
-            $parentCategories = $categories;
-            $categories = [];
-            foreach ($parentCategories as $id => $children) {
-                $categories[] = [
-                    'id'       => $id,
-                    'children' => $children
-                ];
             }
         }
 
