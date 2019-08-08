@@ -561,6 +561,7 @@ class Products extends AbstractResolver
                 $filterData[0],
                 $this->prepareFilterValue(['eq' => $filterData[1]])
             )) {
+                $field->setExcluded(true);
                 $preparedFilters[] = [$field];
             }
         }
