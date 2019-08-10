@@ -175,7 +175,7 @@ class Products extends AbstractResolver
         if ((isset($this->resolveInfo['items']) && count($this->resolveInfo['items']) <= $limit && isset($this->resolveInfo['items']['sku']))
             || (isset($this->resolveInfo['items_ids']))
         ) {
-            $maxPageSize = 10000;
+            $maxPageSize = 50000;
 
             $query->addFieldsToSelect([
                 $this->queryHelper->getFieldByAttributeCode('sku'),
