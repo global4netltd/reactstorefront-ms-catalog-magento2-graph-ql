@@ -82,25 +82,25 @@ class Search extends AbstractHelper
     public function getMagentoSearchQuery(string $queryText): SearchQuery
     {
         try {
-            if (!$this->query) {
+            if (!$this->query || !$this->query instanceof \Magento\Search\Model\QueryInterface) {
+                $query = $this->searchQueryFactory->create();
+                $this->query = $query;
                 $maxQueryLength = $this->magentoSearchHelper->getMaxQueryLength();
                 $minQueryLength = $this->magentoSearchHelper->getMinQueryLength();
                 $rawQueryText = $this->getRawQueryText($queryText);
                 $preparedQueryText = $this->getPreparedQueryText($rawQueryText, $maxQueryLength);
-                $query = $this->searchQueryFactory->create()->loadByQueryText($preparedQueryText);
+                $query->loadByQueryText($preparedQueryText);
                 if (!$query->getId()) {
                     $query->setQueryText($preparedQueryText);
                 }
                 $query->setIsQueryTextExceeded($this->isQueryTooLong($rawQueryText, $maxQueryLength));
                 $query->setIsQueryTextShort($this->isQueryTooShort($rawQueryText, $minQueryLength));
-
-                $this->query = $query;
             }
 
             return $this->query;
         } catch (Exception $e) {
             $this->_logger->error('Get Magento Search Query Exception', ['message' => $e->getMessage(), 'exception' => $e]);
-            return null;
+            return $this->query;
         }
     }
 

@@ -95,7 +95,7 @@ class Search extends AbstractResolver
         // @ToDo: handle synonyms, somehow...
 
         // update search term in magento
-        // @ToDo - create new if not exist or update search count in magento by id if not autosuggest
+        // @ToDo - create new if not exist or update search count in magento by id if not autosuggestion
         if (!$isAutosuggest) {
             $this->updateMagentoSearchTerm($searchTerm);
         }
@@ -112,7 +112,7 @@ class Search extends AbstractResolver
         }
 
         // else -> set search in args and msProducts will do the rest
-        $finalSearchText = $searchTerm->getFieldValue('search_text') ?: $searchText;
+        $finalSearchText = $searchTerm->getFieldValue('query_text') ?: $searchText;
         $argsForMsProducts = ['search' => $finalSearchText];
         $dataObject = new DataObject(['args' => $argsForMsProducts]);
         $this->eventManager->dispatch(
@@ -162,7 +162,7 @@ class Search extends AbstractResolver
      */
     protected function updateMagentoSearchTerm(Document $searchTerm)
     {
-        $searchText = $searchTerm->getFieldValue('search_text') ?: '';
+        $searchText = $searchTerm->getFieldValue('query_text') ?: '';
 
         if (!$searchText) {
             return;
