@@ -281,7 +281,7 @@ class Products extends AbstractResolver
             $query->addSort($sort);
         }
 
-        $this->eventManager->dispatch('prepare_msproduct_resolver_sort_add_after', ['query' => $query]);
+        $this->eventManager->dispatch('prepare_msproduct_resolver_sort_add_after', ['query' => $query, 'args' => $args]);
     }
 
     /**

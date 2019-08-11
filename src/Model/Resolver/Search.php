@@ -148,13 +148,11 @@ class Search extends AbstractResolver
                 'object_type',
                 'search_term'
             )],
-            [$this->queryHelper->getFieldByProductAttributeCode(
-                'query_text',
-                $searchText
-            )],
+            [new Document\Field('query_text', $searchText, Document\Field::FIELD_TYPE_STRING, true, false)],
         ]);
+        $response = $getSearchTermQuery->getResponse();
         /** @var Document $searchTerm */
-        $searchTerm = $getSearchTermQuery->getResponse()->getFirstItem();
+        $searchTerm = $response->getFirstItem();
 
         return $searchTerm;
     }
