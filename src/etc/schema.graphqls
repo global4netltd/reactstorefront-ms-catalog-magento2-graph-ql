@@ -16,7 +16,7 @@ type Query {
         levels: [Int] @doc(description: "Level of the category")
         children: Boolean @doc(description: "Children of the category")
         debug: Boolean
-    ): MsCategories @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Categories") @cache(cacheable: false)
+    ): MsCategories @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Categories")
     msSearch (
         query: String! @doc(description: "Search text")
         autosuggest: Boolean! @doc(description: "")
