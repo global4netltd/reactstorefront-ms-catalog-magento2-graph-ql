@@ -210,12 +210,13 @@ class Products extends AbstractResolver
             self::PRODUCT_OBJECT_TYPE . '_resolver_result_return_before',
             ['result' => $resultObject]
         );
+        $result = $resultObject->getData('result');
 
         // set args to context for eager loading etc. purposes
         $context->msProductsArgs = $args;
         $context->msProducts = $result;
 
-        return $resultObject->getData('result');
+        return $result;
     }
 
     /**
