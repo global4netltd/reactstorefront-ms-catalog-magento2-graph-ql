@@ -198,7 +198,7 @@ class Products extends AbstractResolver
 
         $this->eventManager->dispatch(
             'prepare_msproduct_resolver_response_before',
-            ['query' => $query, 'resolve_info' => $info]
+            ['query' => $query, 'resolve_info' => $info, 'args' => $args]
         );
         $response = $query->getResponse();
         $this->eventManager->dispatch(
@@ -332,6 +332,8 @@ class Products extends AbstractResolver
         if (isset($args['filter']) && ($filters = $this->prepareFiltersByArgsFilter($args['filter']))) {
             $query->addFilters($filters);
         }
+
+        $this->eventManager->dispatch('prepare_msproduct_resolver_filters_add_after', ['query' => $query, 'args' => $args]);
     }
 
     /**
