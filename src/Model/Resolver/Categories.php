@@ -169,7 +169,7 @@ class Categories extends AbstractResolver
         if ($levels) {
             $msCatalogForCategory->addFilter($this->queryHelper
                 ->getFieldByCategoryAttributeCode('level', $levels));
-            $msCatalogForCategory->setPageSize(1000);
+            $msCatalogForCategory->setPageSize($this->getMaxPageSize());
             $fieldsToSelect[] = $this->queryHelper->getFieldByCategoryAttributeCode('level');
             $queryFields['level'] = 1;
             $fieldsToSelect[] = $this->queryHelper->getFieldByCategoryAttributeCode('parent_id');
@@ -177,7 +177,7 @@ class Categories extends AbstractResolver
         } elseif ($children) {
             $msCatalogForCategory->addFilter($this->queryHelper
                 ->getFieldByCategoryAttributeCode('parent_id', $categoryIds));
-            $msCatalogForCategory->setPageSize(100);
+            $msCatalogForCategory->setPageSize($this->getMaxPageSize());
             $fieldsToSelect[] = $this->queryHelper->getFieldByCategoryAttributeCode('parent_id');
             $queryFields['parent_id'] = 1;
         } elseif ($categoryIds) {
@@ -248,5 +248,14 @@ class Categories extends AbstractResolver
             'categories' => $categories,
             'debug_info' => $debugInfo,
         ];
+    }
+
+    /**
+     * @todo rethink it, maybe put max page size in configuration or sth
+     * @return int
+     */
+    public function getMaxPageSize()
+    {
+        return 2000;
     }
 }
