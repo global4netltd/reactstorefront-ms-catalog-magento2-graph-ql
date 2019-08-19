@@ -320,12 +320,15 @@ class Products extends AbstractResolver
             [$this->queryHelper->getFieldByProductAttributeCode(
                 'object_type',
                 'product'
-            )],
-            [$this->queryHelper->getFieldByProductAttributeCode(
-                'visibility',
-                $this->prepareFilterValue(['gt' => 1])
             )]
         ]);
+
+        if (!isset($args['filter']['skus'])) {
+            $query->addFilter($this->queryHelper->getFieldByProductAttributeCode(
+                'visibility',
+                $this->prepareFilterValue(['gt' => 1])
+            ));
+        }
 
         $this->addOutOfStockFilterProducts($query);
 
