@@ -33,11 +33,12 @@ type Query {
 }
 
 input MsProductFilterInput @doc(description: "ProductFilterInput defines the filters to be used in the search. A filter contains at least one attribute, a comparison operator, and the value that is being searched for.") {
+    attributes: [String] @doc(description: "Table of attributes code for filter products")
+    category_id: FilterTypeInput @doc(description: "Category ID the product belongs to")
     custom: [MsCustomFilter] @doc(description: "Custom attribute for filters")
     id_type: IdTypeEnum @doc(description: "Type of returned product id")
     ids: [Int] @doc(description: "Table of numbers uniquely assigned to the product")
     skus: [Int] @doc(description: "Table of numbers or codes assigned to the product")
-    category_id: FilterTypeInput @doc(description: "Category ID the product belongs to")
 }
 
 input MsCustomFilter @doc(description: "Defines the custom filters to be used in the search") {
