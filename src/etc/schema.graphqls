@@ -1,0 +1,234 @@
+#Solr Category and Products with facets data GraphQl Schema
+
+type Query {
+    msProducts (
+        search: String @doc(description: "Performs a full-text search using the specified key words."),
+        filter: MsProductFilterInput @doc(description: "Identifies which product attributes to search for and return."),
+        facet: Boolean @doc(description: "Specifies which attributes we need to obtain the number of occurrences in the filters"),
+        attributes: Boolean @doc(description: "Specifies if we should return product attributes."),
+        pageSize: Int @doc(description: "Specifies the maximum number of results to return at once. This attribute is optional."),
+        currentPage: Int = 0 @doc(description: "Specifies which page of results to return. The default value is 0."),
+        sort: MsProductSortInput @doc(description: "Specifies which attribute to sort on, and whether to return the results in ascending or descending order.")
+        debug: Boolean
+    ): MsProducts @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Products") @doc(description: "The products query searches for products that match the criteria specified in the search and filter attributes")
+    msCategories (
+        ids: [Int] @doc(description: "Arrays of Ids of the categories")
+        levels: [Int] @doc(description: "Level of the category")
+        children: Boolean @doc(description: "Children of the category")
+        debug: Boolean
+    ): MsCategories @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Categories")
+    msSearch (
+        query: String! @doc(description: "Search text")
+        autosuggest: Boolean! @doc(description: "")
+    ): MsSearch @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Search")
+    attributes (
+        attributeCodes: [String] @doc(description: "List of attribute codes")
+    ): Attributes @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Attribute") @doc(description: "The attributes query returns information about attributes and options")
+    msCmsPage (
+        id: Int @doc(description: "Id of the CMS page")
+    ): MsCmsPage @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\CmsPage") @doc(description: "The CMS page query returns information about a CMS page")
+    msCmsBlock (
+        id: Int @doc(description: "Id of the CMS Block")
+    ): MsCmsBlock @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\CmsBlock") @doc(description: "The CMS block query returns information about a CMS block")
+}
+
+input MsProductFilterInput @doc(description: "ProductFilterInput defines the filters to be used in the search. A filter contains at least one attribute, a comparison operator, and the value that is being searched for.") {
+    attributes: [String] @doc(description: "Table of attributes code for filter products")
+    category_id: FilterTypeInput @doc(description: "Category ID the product belongs to")
+    custom: [MsCustomFilter] @doc(description: "Custom attribute for filters")
+    id_type: IdTypeEnum @doc(description: "Type of returned product id")
+    ids: [Int] @doc(description: "Table of numbers uniquely assigned to the product")
+    skus: [Int] @doc(description: "Table of numbers or codes assigned to the product")
+}
+
+input MsCustomFilter @doc(description: "Defines the custom filters to be used in the search") {
+    code: String @doc(description: "The name of custom filter")
+    input: FilterTypeInput @doc(description: "Custom filter comparison operator and value")
+}
+
+input MsProductSortInput  @doc(description: "ProductSortInput specifies the attribute to use for sorting search results and indicates whether the results are sorted in ascending or descending order") {
+    sort_by: String @doc(description: "Sorting name")
+    sort_order: String @doc(description: "Sorting order")
+}
+
+enum IdTypeEnum @doc(description: "This enumeration indicates whether to return results as id, sku")
+{
+    ID
+    SKU
+}
+
+type MsProductData @doc(description: "The ProductInterface contains attributes that are common to all types of products. Note that descriptions may not be available for custom and EAV attributes.") {
+    id: Int @doc(description: "The ID number")
+    sku: String @doc(description: "A number or code assigned to a product to identify the product, options, price, and manufacturer")
+    type_id: String @doc(description: "Product type")
+    product_type: Int @doc(description: "Product type from synchronization")
+    name: String @doc(description: "The product name. Customers use this name to identify the product.")
+    description: String @doc(description: "The product description.")
+    price: Float @doc(description: "Price of the product")
+    special_price: Float @doc(description: "Special price of the product")
+    final_price: Float @doc(description: "Final price of the product")
+    url: String @doc(description: "Url for product")
+    url_key: String @doc(description: "Url key for product")
+    request_path: String @doc(description: "Request path for product")
+    categories: [Int] @doc(description: "Array of product categories ids")
+    thumbnail: String @doc(description: "Path to thumbnail image")
+    small_image: String @doc(description: "Path to thumbnail small image")
+    image: String @doc(description: "Path to thumbnail image")
+    swatch_image: String @doc(description: "Path to thumbnail swatch image")
+    media_gallery: String @doc(description: "Product media gallery")
+    attributes: [ProductAttribute] @doc(description: "Product attributes")
+    category_id: [Int] @doc(description: "Product category ids")
+    meta_title: String @doc(description: "Product meta title")
+    meta_description: String @doc(description: "Product meta description")
+    meta_keywords: String @doc(description: "Product meta keywords")
+}
+
+type MsProducts @doc(description: "The Products object is the top-level object returned in a product search") {
+    items_ids: [Int] @doc(description: "An array of products ids / skus / gid depends on id_type")
+    items: [MsProductData] @doc(description: "An array of products that match the specified search criteria")
+    page_info: SearchResultPageInfo @doc(description: "An object that includes the page_info and currentPage values specified in the query")
+    total_count: Int @doc(description: "The number of products returned")
+    facets: [MsProductFacets] @doc(description: "The array of filters with the number of occurrences that match the specified search criteria")
+    stats: [MsProductStats] @doc(description: "The array of range filters with the number of occurrences that match the specified search criteria")
+    debug_info: DebugInfo
+}
+
+type MsProductFacets @doc(description: "The Facet object returned in a product search") {
+    code: String @doc(description: "The name of the attribute used to identify the filter")
+    values: [MsFacetData] @doc(description: "An array containing the value for the attribute and the number of occurrence")
+}
+
+type MsFacetData @doc(description: "The FacetData object contains data on filter values and occurrence") {
+    value_id: String @doc(description: "The value of the attribute")
+    count: Int @doc(description: "The number of returned amount of occurrence of the attribute value")
+}
+
+type MsProductStats @doc(description: "The Stat object returned in a product search") {
+    code: String @doc(description: "The name of the attribute used to identify the filter")
+    values: MsStatData @doc(description: "An array containing the data for the attribute and the number of occurrence")
+}
+
+type MsStatData @doc(description: "The StatData object contains statistic data on attribute and occurrence") {
+    min: Float @doc(description: "The minimum value for filtered products")
+    max: Float @doc(description: "The maximum value for filtered products")
+    sum: Float @doc(description: "The sum of values for filtered products")
+    count: Int @doc(description: "Number of filtered products")
+}
+
+type ProductAttribute @doc(description: "Product attribute contains attribute code and value.") {
+    attribute_code: String @doc(description: "Product attribute code")
+    value: String @doc(description: "Product attribute value")
+}
+
+type MsCategories {
+    items: [MsCategory]
+    debug_info: DebugInfo
+}
+
+type MsCategory implements MsCategoryInterface @doc(description: "Category implementation") {
+
+}
+
+interface MsCategoryInterface @typeResolver(class: "Magento\\CatalogGraphQl\\Model\\CategoryInterfaceTypeResolver") @doc(description: "CategoryInterface contains the full set of attributes that can be returned in a category search") {
+    id: Int @doc(description: "An ID that uniquely identifies the category")
+    description: String @doc(description: "An optional description of the category")
+    name: String @doc(description: "The display name of the category")
+    path: String @doc(description: "Category Path")
+    url: String @doc(description: "The url assigned to the category")
+    url_key: String @doc(description: "The url key assigned to the category")
+    url_path: String @doc(description: "The url path assigned to the category")
+    image: String @doc(description: "Image url assigned to the category")
+    display_mode: String @doc(description: "Display mode assigned to the category")
+    meta_title: String @doc(description: "Category meta title")
+    meta_description: String @doc(description: "Category meta description")
+    meta_keywords: String @doc(description: "Category meta keywords")
+    position: Int @doc(description: "The position of the category relative to other categories at the same level in tree")
+    level: Int @doc(description: "Indicates the depth of the category within the tree")
+    created_at: String @doc(description: "Timestamp indicating when the category was created")
+    updated_at: String @doc(description: "Timestamp indicating when the category was updated")
+    default_sort_by: String @doc(description: "The attribute to use for sorting")
+    msProducts (
+        filter: MsProductFilterInput @doc(description: "Identifies which product attributes to search for and return."),
+        facet: Boolean @doc(description: "Specifies which attributes we need to obtain the number of occurrences in the filters"),
+        pageSize: Int @doc(description: "Specifies the maximum number of results to return at once. This attribute is optional."),
+        currentPage: Int = 0 @doc(description: "Specifies which page of results to return. The default value is 0.")
+        sort: MsProductSortInput @doc(description: "Specifies which attribute to sort on, and whether to return the results in ascending or descending order.")
+    ): MsProducts @doc(description: "The products query searches for products that match the criteria specified in the search and filter attributes")
+    @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Products")
+    children: [MsCategory] @doc(description: "Category children array")
+    children_count: Int @doc(description: "Category children count")
+    product_count: Int @doc(description: "Category product count")
+    solr_facets: [String] @doc(description: "The attribute to use for filters")
+    seo_robots: String @doc(description: "Robots for meta data")
+}
+
+type MsSearch @doc(description: "Search Term") {
+    redirect: urlResolver @doc(description: "")
+    msProducts (
+        filter: MsProductFilterInput @doc(description: "Identifies which product attributes to search for and return."),
+        facet: Boolean @doc(description: "Specifies which attributes we need to obtain the number of occurrences in the filters"),
+        pageSize: Int @doc(description: "Specifies the maximum number of results to return at once. This attribute is optional."),
+        currentPage: Int = 0 @doc(description: "Specifies which page of results to return. The default value is 0.")
+        sort: MsProductSortInput @doc(description: "Specifies which attribute to sort on, and whether to return the results in ascending or descending order.")
+    ): MsProducts @doc(description: "The products query searches for products that match the criteria specified in the search and filter attributes")
+    @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Products")
+}
+
+type urlResolver @doc(description: "") {
+    type: String @doc(description: "Type of redirect")
+    id: Int @doc(description: "Id umber")
+    canonical_url: String @doc(description: "Canonical url")
+}
+
+type Attributes @doc(description: "List of attributes") {
+    attributes: [AttributeDefinition]
+}
+
+type AttributeDefinition @doc(description: "Attribute contains the attribute_type of the specified attribute_code and entity_type") {
+    attribute_code: String @doc(description: "The unique identifier for an attribute code. This value should be in lowercase letters without spaces.")
+    backend_type: String @doc(description: "The backend type of the attribute")
+    frontend_input: String @doc(description: "The frontend input type of the attribute")
+    attribute_type: String @doc(description: "The type of the attribute (select, multiselect, range)")
+    attribute_label: String @doc(description: "Label of the attribute")
+    attribute_options: [AttributeOption] @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\AttributeOption") @doc(description: "Attribute options list.")
+    position: Int @doc(description: "Position of the attribute")
+}
+
+type AttributeOption @doc(description: "Attribute option.") {
+    value: Int @doc(description: "Attribute option id.")
+    label: String @doc(description: "Attribute option label.")
+}
+
+type MsCmsPage @doc(description: "CMS page defines all CMS page information") {
+    url_key: String @doc(description: "URL key of CMS page")
+    title: String @doc(description: "CMS page title")
+    content: String @doc(description: "CMS page content")
+    content_heading: String @doc(description: "CMS page content heading")
+    page_layout: String @doc(description: "CMS page content heading")
+    meta_title: String @doc(description: "CMS page meta title")
+    meta_description: String @doc(description: "CMS page meta description")
+    meta_keywords: String @doc(description: "CMS page meta keywords")
+}
+
+type MsCmsBlock @doc(description: "Cms Block defines all CMS Block information") {
+    id: Int @doc(description: "An ID that uniquely identifies the cms block")
+    title: String @doc(description: "CMS block title")
+    identifier: String @doc(description: "CMS block identifier")
+    content: String @doc(description: "CMS block content")
+    is_active: Boolean @doc(description: "Is CMS block enabled")
+    front_title: String @doc(description: "The front title of CMS block")
+}
+
+type DebugInfo {
+    omitHeader: String
+    wt: String
+    q: String
+    sort: String
+    start: Int
+    rows: Int
+    fl: String
+    fq: [String]
+    uri: String
+    code: Int
+    message: String
+}
