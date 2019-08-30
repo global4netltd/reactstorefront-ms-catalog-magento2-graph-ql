@@ -82,6 +82,7 @@ type MsProductData @doc(description: "The ProductInterface contains attributes t
     meta_description: String @doc(description: "Product meta description")
     meta_keywords: String @doc(description: "Product meta keywords")
     attribute_codes_is_visible_on_front: [String] @doc(description: "Attribute codes which is visible on front")
+    stock_total_qty: Int @doc(description: "Total Stock qty - from all sources")
 }
 
 type MsProducts @doc(description: "The Products object is the top-level object returned in a product search") {
