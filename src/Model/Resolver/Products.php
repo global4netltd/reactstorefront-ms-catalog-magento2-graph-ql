@@ -191,6 +191,10 @@ class Products extends AbstractResolver
         $pageSize = (isset($args['pageSize']) && ($args['pageSize'] < $maxPageSize)) ? $args['pageSize'] : $maxPageSize;
         $query->setPageSize($pageSize);
 
+        $currentPage = $args['currentPage'] ?? 1;
+        $query->setCurrentPage($currentPage);
+
+
         if (isset($args['search']) && $args['search']) {
             $searchText = Parser::parseSearchText($args['search']);
             $query->setQueryText($searchText);
