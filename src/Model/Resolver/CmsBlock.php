@@ -33,27 +33,29 @@ class CmsBlock extends AbstractResolver
         array $value = null,
         array $args = null
     ) {
-        if (!isset($args['id']) && is_int($args['id'])) {
-            throw new GraphQlInputException(__('id for cms block should be specified'));
+        if (!isset($args['identifiers']) && is_int($args['identifiers'])) {
+            throw new GraphQlInputException(__('identifiers for cms block should be specified'));
         }
 
-        return $this->getCmsBlockFromSearchEngine($args['id'], $info->getFieldSelection());
+        return $this->getCmsBlockFromSearchEngine($args['identifiers'], $info->getFieldSelection(2));
     }
 
     /**
-     * @param int $id
+     * @param array $identifiers
      * @param array $queryFields
-     *
      * @return array
      * @throws NoSuchEntityException
+     * @throws \Exception
      */
-    public function getCmsBlockFromSearchEngine(int $id, $queryFields = [])
+    public function getCmsBlockFromSearchEngine(array $identifiers, $queryFields = [])
     {
         $storeId = $this->storeManager->getStore()->getId();
         $searchEngineConfig = $this->configHelper->getConfiguration();
         $searchEngineClient = ClientFactory::create($searchEngineConfig);
 
         $query = $searchEngineClient->getQuery();
+
+        $queryFields = $queryFields['items'] ?? [];
 
         foreach ($queryFields as $name => $field) {
             $query->addFieldToSelect(
@@ -74,21 +76,30 @@ class CmsBlock extends AbstractResolver
                 ),
             ],
             [
+                new \G4NReact\MsCatalog\Document\Field('identifier',
+                    $identifiers,
+                    \G4NReact\MsCatalog\Document\Field::FIELD_TYPE_STRING,
+                    true,
+                    false
+                )
+            ],
+            [
                 $this->queryHelper->getFieldByCmsBlockColumnName(
-                    'id', $id
+                    'is_active', true
                 )
             ]
         ]);
 
-        /** @var ResponseInterface $cmsBlockResult */
+        /** @var \G4NReact\MsCatalog\ResponseInterface $cmsBlockResult */
         $cmsBlockResult = $query->getResponse();
 
+        $cmsBlocks = [];
         if ($cmsBlockResult->getNumFound()) {
             foreach ($cmsBlockResult->getDocumentsCollection() as $cmsBlock) {
-                $solrCmsBlock = $this->prepareDocumentResult($cmsBlock, $queryFields, 'mscmsblock');
+                $cmsBlocks[] = $this->prepareDocumentResult($cmsBlock, $queryFields, 'mscmsblock');
             }
         }
 
-        return $solrCmsBlock ?? [];
+        return $cmsBlocks ? ['items' => $cmsBlocks] : [];
     }
 }
