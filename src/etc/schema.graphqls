@@ -220,7 +220,6 @@ type MsCmsBlock @doc(description: "Cms Block defines all CMS Block information")
     identifier: String @doc(description: "CMS block identifier")
     content: String @doc(description: "CMS block content")
     is_active: Boolean @doc(description: "Is CMS block enabled")
-    front_title: String @doc(description: "The front title of CMS block")
 }
 
 type DebugInfo {
