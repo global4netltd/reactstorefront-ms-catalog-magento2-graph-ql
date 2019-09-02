@@ -121,6 +121,19 @@ class Search extends AbstractHelper
     }
 
     /**
+     * @param SearchQuery $query
+     */
+    public function updateSearchQueryNumResults(SearchQuery $query)
+    {
+        try {
+            $query->setStoreId($this->storeManager->getStore()->getId());
+            $this->searchQueryResource->saveNumResults($query);
+        } catch (Exception $e) {
+            $this->_logger->error('Update Magento Search Query Num Results Exception', ['message' => $e->getMessage(), 'exception' => $e]);
+        }
+    }
+
+    /**
      * @param string $queryText
      * @return string
      */

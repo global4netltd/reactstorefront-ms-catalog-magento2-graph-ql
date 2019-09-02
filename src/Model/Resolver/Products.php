@@ -11,6 +11,7 @@ use G4NReact\MsCatalogMagento2\Helper\Config as ConfigHelper;
 use G4NReact\MsCatalogMagento2\Helper\Facets as FacetsHelper;
 use G4NReact\MsCatalogMagento2\Helper\Query;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Parser;
+use G4NReact\MsCatalogMagento2GraphQl\Helper\Search as SearchHelper;
 use G4NReact\MsCatalogSolr\FieldHelper;
 use Magento\Catalog\Model\CategoryRepository;
 use Magento\Catalog\Model\Product\Attribute\Source\Status;
@@ -25,6 +26,7 @@ use Magento\Framework\GraphQl\Exception\GraphQlInputException;
 use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Framework\Serialize\Serializer\Json;
+use Magento\Search\Model\Query as SearchQuery;
 use Magento\Store\Model\StoreManagerInterface;
 use Psr\Log\LoggerInterface;
 
@@ -56,27 +58,36 @@ class Products extends AbstractResolver
         'category',
         'price'
     ];
+
     /**
      * List of attributes codes that we can skip when returning attributes for product
      *
      * @var array
      */
     public static $attributesToSkip = [];
+
     /**
      * @var string
      */
     public $resolveInfo;
+
     /**
      * @var CategoryRepository
      */
     protected $categoryRepository;
+
     /**
      * @var FacetsHelper
      */
     protected $facetsHelper;
 
     /**
-     * AbstractResolver constructor.
+     * @var SearchHelper
+     */
+    protected $searchHelper;
+
+    /**
+     * Products constructor
      *
      * @param CacheInterface $cache
      * @param DeploymentConfig $deploymentConfig
@@ -88,6 +99,7 @@ class Products extends AbstractResolver
      * @param EventManager $eventManager
      * @param CategoryRepository $categoryRepository
      * @param FacetsHelper $facetsHelper
+     * @param SearchHelper $searchHelper
      */
     public function __construct(
         CacheInterface $cache,
@@ -99,10 +111,12 @@ class Products extends AbstractResolver
         Query $queryHelper,
         EventManager $eventManager,
         CategoryRepository $categoryRepository,
-        FacetsHelper $facetsHelper
+        FacetsHelper $facetsHelper,
+        SearchHelper $searchHelper
     ) {
         $this->categoryRepository = $categoryRepository;
         $this->facetsHelper = $facetsHelper;
+        $this->searchHelper = $searchHelper;
 
         return parent::__construct($cache, $deploymentConfig, $storeManager, $serializer, $logger, $configHelper, $queryHelper, $eventManager);
     }
@@ -188,6 +202,7 @@ class Products extends AbstractResolver
         $query->setPageSize($pageSize);
 
         if (isset($args['search']) && $args['search']) {
+            $this->resolveInfo['total_count'] = true;
             $searchText = Parser::parseSearchText($args['search']);
             $query->setQueryText($searchText);
         }
@@ -203,6 +218,19 @@ class Products extends AbstractResolver
         );
 
         $result = $this->prepareResultData($response, $debug);
+
+        if (isset($args['search'])
+            && $args['search']
+            && isset($result['total_count'])
+            && isset($context->magentoSearchQuery)
+        ) {
+            /** @var SearchQuery $magentoSearchQuery */
+            $magentoSearchQuery = $context->magentoSearchQuery;
+            if ($magentoSearchQuery && $magentoSearchQuery->getId()) {
+                $magentoSearchQuery->setNumResults($result['total_count']);
+                $this->searchHelper->updateSearchQueryNumResults($magentoSearchQuery);
+            }
+        }
 
         $resultObject = new DataObject(['result' => $result]);
         $this->eventManager->dispatch(

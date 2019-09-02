@@ -22,6 +22,7 @@ use Magento\Framework\GraphQl\Query\Resolver\Value;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Store\Model\StoreManagerInterface;
+use Magento\Search\Model\Query as SearchQuery;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -87,42 +88,43 @@ class Search extends AbstractResolver
         }
 
         $searchText = $args['query'] ?? '';
+        $magentoSearchQuery = null;
         $isAutosuggest = (isset($args['autosuggest']) && $args['autosuggest']) ? true : false;
 
         // get search term from solr
-        $searchTerm = $this->getSearchTermFromSearchEngine($searchText);
+        $searchTermDocument = $this->getSearchTermFromSearchEngine($searchText);
 
         // @ToDo: handle synonyms, somehow...
 
         // update search term in magento
-        // @ToDo - create new if not exist or update search count in magento by id if not autosuggestion
         if (!$isAutosuggest) {
-            $this->updateMagentoSearchTerm($searchTerm);
+            $magentoSearchQuery = $this->updateMagentoSearchTerm($searchText, $searchTermDocument);
         }
 
         // if redirect -> set redirect info
-        if ($canonicalUrl = $searchTerm->getFieldValue('redirect')) {
+        if ($canonicalUrl = $searchTermDocument->getFieldValue('redirect')) {
             return [
                 'redirect' => [
                     'type'          => 'REDIRECT',
                     'id'            => 301,
-                    'canonical_url' => $canonicalUrl,
+                    'canonical_url' => '/' . ltrim((string)$canonicalUrl, '/'),
                 ]
             ];
         }
 
         // else -> set search in args and msProducts will do the rest
-        $finalSearchText = $searchTerm->getFieldValue('query_text') ?: $searchText;
+        $finalSearchText = $searchTermDocument->getFieldValue('query_text') ?: $searchText;
         $argsForMsProducts = ['search' => $finalSearchText];
-        $dataObject = new DataObject(['args' => $argsForMsProducts]);
+        $dataObject = new DataObject(['args' => $argsForMsProducts, 'return' => []]);
         $this->eventManager->dispatch(
             'prepare_mssearch_resolver_args_after',
-            ['search_text' => $searchText, 'args' => $dataObject, 'search_term' => $searchTerm]
+            ['search_text' => $searchText, 'args' => $dataObject, 'search_term' => $searchTermDocument]
         );
 
         $context->args = array_merge($args, $dataObject->getData('args'));
+        $context->magentoSearchQuery = $magentoSearchQuery;
 
-        return [];
+        return $dataObject->getData('return') ?: [];
     }
 
     /**
@@ -158,11 +160,13 @@ class Search extends AbstractResolver
     }
 
     /**
+     * @param string $searchText
      * @param Document $searchTerm
+     * @return null|SearchQuery
      */
-    protected function updateMagentoSearchTerm(Document $searchTerm)
+    protected function updateMagentoSearchTerm(string $searchText, Document $searchTerm)
     {
-        $searchText = $searchTerm->getFieldValue('query_text') ?: '';
+        $searchText = $searchTerm->getFieldValue('query_text') ?: $searchText;
 
         if (!$searchText) {
             return;
@@ -172,5 +176,7 @@ class Search extends AbstractResolver
         if ($magentoSearchQuery) {
             $this->searchHelper->executeMagentoSearchQuery($magentoSearchQuery);
         }
+
+        return $magentoSearchQuery ?: null;
     }
 }
