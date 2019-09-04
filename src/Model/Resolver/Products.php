@@ -273,7 +273,7 @@ class Products extends AbstractResolver
 
         $this->addOutOfStockFilterProducts($query);
 
-        if (isset($args['filter']) && ($filters = $this->prepareFiltersByArgsFilter($args['filter']))) {
+        if (isset($args['filter']) && is_array($args['filter']) && ($filters = $this->prepareFiltersByArgsFilter($args['filter']))) {
             $query->addFilters($filters);
         }
 
