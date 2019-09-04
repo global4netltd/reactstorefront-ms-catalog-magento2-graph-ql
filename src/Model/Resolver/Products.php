@@ -166,7 +166,10 @@ class Products extends AbstractResolver
         $args = $resolveObject->getArgs();
 
         if (isset($args['redirect']) && $args['redirect']) {
-            return [];
+            return [
+                'items' => [],
+                'total_count' => 0,
+            ];
         }
 
         if (!isset($args['search']) && !isset($args['filter'])) {
