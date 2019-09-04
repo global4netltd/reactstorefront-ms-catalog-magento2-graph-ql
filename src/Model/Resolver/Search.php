@@ -103,28 +103,31 @@ class Search extends AbstractResolver
 
         // if redirect -> set redirect info
         if ($canonicalUrl = $searchTermDocument->getFieldValue('redirect')) {
-            return [
+            $return = [
                 'redirect' => [
                     'type'          => 'REDIRECT',
                     'id'            => 301,
-                    'canonical_url' => '/' . ltrim((string)$canonicalUrl, '/'),
+                    'canonical_url' => $this->sanitizeCanonicalUrl($canonicalUrl),
                 ]
             ];
+            $argsToSet = array_merge($args, ['redirect' => true]);
+        } else {
+            // else -> set search in args and msProducts will do the rest
+            $finalSearchText = $searchTermDocument->getFieldValue('query_text') ?: $searchText;
+            $argsForMsProducts = ['search' => $finalSearchText];
+            $dataObject = new DataObject(['args' => $argsForMsProducts, 'return' => []]);
+            $this->eventManager->dispatch(
+                'prepare_mssearch_resolver_args_after',
+                ['search_text' => $searchText, 'args' => $dataObject, 'search_term' => $searchTermDocument]
+            );
+            $argsToSet = array_merge($args, $dataObject->getData('args'));
+            $return = $dataObject->getData('return');
         }
 
-        // else -> set search in args and msProducts will do the rest
-        $finalSearchText = $searchTermDocument->getFieldValue('query_text') ?: $searchText;
-        $argsForMsProducts = ['search' => $finalSearchText];
-        $dataObject = new DataObject(['args' => $argsForMsProducts, 'return' => []]);
-        $this->eventManager->dispatch(
-            'prepare_mssearch_resolver_args_after',
-            ['search_text' => $searchText, 'args' => $dataObject, 'search_term' => $searchTermDocument]
-        );
-
-        $context->args = array_merge($args, $dataObject->getData('args'));
+        $context->args = $argsToSet;
         $context->magentoSearchQuery = $magentoSearchQuery;
 
-        return $dataObject->getData('return') ?: [];
+        return $return ?: [];
     }
 
     /**
@@ -178,5 +181,21 @@ class Search extends AbstractResolver
         }
 
         return $magentoSearchQuery ?: null;
+    }
+
+    /**
+     * @param string|null $url
+     * @return string|null
+     */
+    protected function sanitizeCanonicalUrl(?string $url): ?string
+    {
+        if (!$url) {
+            return null;
+        }
+        if (preg_match('#^https?://#i', $url) === 1) {
+            return $url;
+        } else {
+            return '/' . ltrim((string)$url, '/');
+        }
     }
 }

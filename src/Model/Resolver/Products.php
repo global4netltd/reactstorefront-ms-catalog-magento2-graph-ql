@@ -165,6 +165,10 @@ class Products extends AbstractResolver
         $value = $resolveObject->getValue();
         $args = $resolveObject->getArgs();
 
+        if (isset($args['redirect']) && $args['redirect']) {
+            return [];
+        }
+
         if (!isset($args['search']) && !isset($args['filter'])) {
             throw new GraphQlInputException(
                 __("'search' or 'filter' input argument is required.")
