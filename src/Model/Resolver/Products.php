@@ -215,7 +215,7 @@ class Products extends AbstractResolver
         }
 
         $this->eventManager->dispatch(
-            'prepare_msproduct_resolver_`response`_before',
+            'prepare_msproduct_resolver_response_before',
             ['query' => $query, 'resolve_info' => $info, 'args' => $args]
         );
         $response = $query->getResponse();
