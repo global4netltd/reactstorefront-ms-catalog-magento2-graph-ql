@@ -87,7 +87,7 @@ class Search extends AbstractResolver
             );
         }
 
-        $searchText = $args['query'] ?? '';
+        $searchText = isset($args['query']) ? mb_strtolower($args['query']) : '';
         $magentoSearchQuery = null;
         $isAutosuggest = (isset($args['autosuggest']) && $args['autosuggest']) ? true : false;
 
@@ -102,12 +102,12 @@ class Search extends AbstractResolver
         }
 
         // if redirect -> set redirect info
-        if ($canonicalUrl = $searchTermDocument->getFieldValue('redirect')) {
+        if ($canonicalUrl = $this->sanitizeCanonicalUrl($searchTermDocument->getFieldValue('redirect'))) {
             $return = [
                 'redirect' => [
                     'type'          => 'REDIRECT',
                     'id'            => 301,
-                    'canonical_url' => $this->sanitizeCanonicalUrl($canonicalUrl),
+                    'canonical_url' => $canonicalUrl,
                 ]
             ];
             $argsToSet = array_merge($args, ['redirect' => true]);
