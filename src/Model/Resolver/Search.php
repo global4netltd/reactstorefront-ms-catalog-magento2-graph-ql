@@ -87,7 +87,7 @@ class Search extends AbstractResolver
             );
         }
 
-        $searchText = isset($args['query']) ? mb_strtolower($args['query']) : '';
+        $searchText = isset($args['query']) ? $this->parseSearchText($args['query']) : '';
         $magentoSearchQuery = null;
         $isAutosuggest = (isset($args['autosuggest']) && $args['autosuggest']) ? true : false;
 
@@ -128,6 +128,15 @@ class Search extends AbstractResolver
         $context->magentoSearchQuery = $magentoSearchQuery;
 
         return $return ?: [];
+    }
+
+    /**
+     * @param string $searchText
+     * @return string
+     */
+    public function parseSearchText(string $searchText): string
+    {
+        return mb_strtolower(strip_tags(stripslashes($searchText)));
     }
 
     /**
