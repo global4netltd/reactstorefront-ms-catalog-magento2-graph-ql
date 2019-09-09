@@ -118,7 +118,16 @@ class Products extends AbstractResolver
         $this->facetsHelper = $facetsHelper;
         $this->searchHelper = $searchHelper;
 
-        return parent::__construct($cache, $deploymentConfig, $storeManager, $serializer, $logger, $configHelper, $queryHelper, $eventManager);
+        return parent::__construct(
+            $cache,
+            $deploymentConfig,
+            $storeManager,
+            $serializer,
+            $logger,
+            $configHelper,
+            $queryHelper,
+            $eventManager
+        );
     }
 
     /**
@@ -165,7 +174,7 @@ class Products extends AbstractResolver
         $value = $resolveObject->getValue();
         $args = $resolveObject->getArgs();
 
-        if (isset($args['redirect']) && $args['redirect']) {
+        if ((isset($args['redirect']) && $args['redirect']) || (isset($args['search']) && $args['search'] = '')) {
             return [
                 'items' => [],
                 'total_count' => 0,
