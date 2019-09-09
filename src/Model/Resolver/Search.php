@@ -91,7 +91,7 @@ class Search extends AbstractResolver
         if (!$searchText) {
             return [];
         }
-        
+
         $magentoSearchQuery = null;
         $isAutosuggest = (isset($args['autosuggest']) && $args['autosuggest']) ? true : false;
 

@@ -57,11 +57,19 @@ class AttributeOption extends AbstractResolver
         QueryHelper $queryHelper,
         EventManager $eventManager,
         AttributeOptionDataProvider $attributeOptionDataProvider
-    )
-    {
+    ) {
         $this->attributeOptionDataProvider = $attributeOptionDataProvider;
 
-        parent::__construct($cache, $deploymentConfig, $storeManager, $serializer, $logger, $configHelper, $queryHelper, $eventManager);
+        parent::__construct(
+            $cache,
+            $deploymentConfig,
+            $storeManager,
+            $serializer,
+            $logger,
+            $configHelper,
+            $queryHelper,
+            $eventManager
+        );
     }
 
     /**
@@ -85,6 +93,7 @@ class AttributeOption extends AbstractResolver
         }
 
         $data = $this->checkIfEmptyValue($data);
+
         return $data;
     }
 
