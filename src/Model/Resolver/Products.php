@@ -76,7 +76,6 @@ class Products extends AbstractResolver
     protected $facetsHelper;
 
     /**
-     * Products constructor.
      * @var SearchHelper
      */
     protected $searchHelper;
