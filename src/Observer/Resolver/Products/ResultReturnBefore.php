@@ -31,10 +31,9 @@ class ResultReturnBefore implements ObserverInterface
             if (is_array($product) && isset($product['media_gallery'])) {
                 $mediaGalleryJson = $product['media_gallery'];
                 $mediaGallery = json_decode($mediaGalleryJson);
-                if ($mediaGallery) {
-                    $product['media_gallery'] = $mediaGallery;
-                    $result['items'][$key] = $product;
-                }
+                $mediaGallery = $mediaGallery ?: [];
+                $product['media_gallery'] = $mediaGallery;
+                $result['items'][$key] = $product;
             }
         }
 
