@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <event name="product_resolver_result_return_before">
+        <observer name="mscatalog_magento2graphql_product_resolver_result_return_before" instance="G4NReact\MsCatalogMagento2GraphQl\Observer\Resolver\Products\ResultReturnBefore"/>
+    </event>
+</config>

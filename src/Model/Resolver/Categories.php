@@ -6,6 +6,7 @@ namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
 use Exception;
 use G4NReact\MsCatalog\Client\ClientFactory;
 use G4NReact\MsCatalog\Document;
+use G4NReact\MsCatalog\QueryInterface;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Parser;
 use Magento\Framework\DataObject;
 use Magento\Framework\Exception\LocalizedException;
@@ -33,6 +34,7 @@ class Categories extends AbstractResolver
      * Get category id
      *
      * @param array $args
+     *
      * @return array
      */
     private function getCategoryIds(array $args): array
@@ -43,6 +45,7 @@ class Categories extends AbstractResolver
 
     /**
      * @param array $args
+     *
      * @return array
      */
     private function getLevel(array $args): array
@@ -57,6 +60,7 @@ class Categories extends AbstractResolver
      * @param ResolveInfo $info
      * @param array|null $value
      * @param array|null $args
+     *
      * @return array|Document
      * @throws GraphQlInputException
      * @throws LocalizedException
@@ -103,7 +107,7 @@ class Categories extends AbstractResolver
 
             if ($items || $debugInfo) {
                 $result = [
-                    'items'      => $items,
+                    'items' => $items,
                     'debug_info' => $debugInfo,
                 ];
             }
@@ -119,6 +123,7 @@ class Categories extends AbstractResolver
 
     /**
      * @param ResolveInfo $info
+     *
      * @return array
      */
     public function parseQueryFields(ResolveInfo $info)
@@ -139,6 +144,7 @@ class Categories extends AbstractResolver
      * @param null $levels
      * @param bool $children
      * @param array $queryFields
+     *
      * @return array
      * @throws LocalizedException
      * @throws NoSuchEntityException
@@ -146,29 +152,23 @@ class Categories extends AbstractResolver
     public function getCategoryFromSearchEngine(array $categoryIds = [], $levels = null, $children = false, $queryFields = [], $debug = false)
     {
         $categories = [];
-        $storeId = $this->storeManager->getStore()->getId();
         $searchEngineConfig = $this->configHelper->getConfiguration();
         $searchEngineClient = ClientFactory::create($searchEngineConfig);
         $msCatalogForCategory = $searchEngineClient->getQuery();
         $msCatalogForCategory->setPageStart(0);
 
-        $msCatalogForCategory->addFilters([
-            [
-                $this->queryHelper->getFieldByCategoryAttributeCode('store_id', $storeId)
-            ],
-            [
-                $this->queryHelper->getFieldByCategoryAttributeCode('object_type', 'category')
-            ],
-        ]);
+        $this->handleFilters($msCatalogForCategory, $queryFields);
 
         $fieldsToSelect = [];
         foreach ($queryFields as $attributeCode => $value) {
             $fieldsToSelect[] = $this->queryHelper->getFieldByCategoryAttributeCode($attributeCode);
         }
-
         if ($levels) {
-            $msCatalogForCategory->addFilter($this->queryHelper
-                ->getFieldByCategoryAttributeCode('level', $levels));
+            $msCatalogForCategory->addFilters([
+                [
+                    $this->queryHelper->getFieldByCategoryAttributeCode('level', $levels)
+                ],
+            ]);
             $msCatalogForCategory->setPageSize($this->getMaxPageSize());
             $fieldsToSelect[] = $this->queryHelper->getFieldByCategoryAttributeCode('level');
             $queryFields['level'] = 1;
@@ -210,6 +210,9 @@ class Categories extends AbstractResolver
                 $solrCategory = $this->prepareDocumentResult($category, $queryFields, 'mscategory');
                 if ($levels) {
                     if (isset($solrCategory['parent_id']) && ($solrCategory['parent_id'] > 2)) {
+                        if (!isset($categories[$solrCategory['parent_id']])) {
+                            continue;
+                        }
                         $categories[$solrCategory['parent_id']]['children'][$solrCategory['id']] = $solrCategory;
                     } else {
                         if (isset($categories[$solrCategory['id']])) {
@@ -234,13 +237,39 @@ class Categories extends AbstractResolver
         }
 
         if ($children) {
+            $catIds = [];
+            foreach ($categoryIds as $cat) {
+                $catIds[] = $cat;
+            }
+
             $parentCategories = $categories;
             $categories = [];
-            foreach ($parentCategories as $id => $children) {
-                $categories[] = [
-                    'id'       => $id,
-                    'children' => $children
-                ];
+            if (!$levels) {
+                $msCatalogForCategory->addFilter($this->queryHelper
+                    ->getFieldByCategoryAttributeCode('id', $categoryIds), false, 'OR');
+                $categoryResult2 = $msCatalogForCategory->getResponse();
+                $parents = [];
+                foreach ($categoryResult2->getDocumentsCollection() as $category) {
+                    $solrCategory = $this->prepareDocumentResult($category, $queryFields, 'mscategory');
+                    if (in_array($solrCategory['id'], $catIds)) {
+                        $parents[] = $solrCategory;
+                    }
+                }
+                foreach ($parentCategories as $id => $children) {
+                    foreach ($parents as $parent) {
+                        if ($parent['id'] == $id) {
+                            $parent['children'] = $children;
+                            $categories[] = $parent;
+                        }
+                    }
+                }
+            } else {
+                foreach ($parentCategories as $id => $children) {
+                    $categories[] = [
+                        'id' => $id,
+                        'children' => $children
+                    ];
+                }
             }
         }
 
@@ -248,6 +277,28 @@ class Categories extends AbstractResolver
             'categories' => $categories,
             'debug_info' => $debugInfo,
         ];
+    }
+
+    /**
+     * @param QueryInterface $query
+     * @param array $args
+     */
+    protected function handleFilters(QueryInterface $query, array $args)
+    {
+        $storeId = $this->storeManager->getStore()->getId();
+        
+        $query->addFilters([
+            [
+                $this->queryHelper->getFieldByCategoryAttributeCode('store_id', $storeId)
+            ],
+            [
+                $this->queryHelper->getFieldByCategoryAttributeCode('object_type', 'category')
+            ],
+        ]);
+
+        if (isset($args['filter']) && is_array($args['filter']) && ($filters = $this->prepareFiltersByArgsFilter($args['filter'], 'category'))) {
+            $query->addFilters($filters);
+        }
     }
 
     /**

@@ -113,6 +113,7 @@ class Search extends AbstractHelper
             $query->setStoreId($this->storeManager->getStore()->getId());
             if (($query->getQueryText() != '') && !$query->getIsProcessed()) {
                 $this->searchQueryResource->saveIncrementalPopularity($query);
+                // $this->searchQueryResource->saveNumResults($query);
                 $query->setIsProcessed(1);
             }
         } catch (Exception $e) {

@@ -15,6 +15,7 @@ type Query {
         ids: [Int] @doc(description: "Arrays of Ids of the categories")
         levels: [Int] @doc(description: "Level of the category")
         children: Boolean @doc(description: "Children of the category")
+        filter: MsCategoryFilterInput @doc(description: "Identifies which product attributes to search for and return.")
         debug: Boolean
     ): MsCategories @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Categories")
     msSearch (
@@ -39,6 +40,10 @@ input MsProductFilterInput @doc(description: "ProductFilterInput defines the fil
     id_type: IdTypeEnum @doc(description: "Type of returned product id")
     ids: [Int] @doc(description: "Table of numbers uniquely assigned to the product")
     skus: [Int] @doc(description: "Table of numbers or codes assigned to the product")
+}
+
+input MsCategoryFilterInput @doc(description: "CategoryFilterInput defines the filters to be used in the search. A filter contains at least one attribute, a comparison operator, and the value that is being searched for.") {
+    attributes: [String] @doc(description: "Table of attributes code for filter products")
 }
 
 input MsCustomFilter @doc(description: "Defines the custom filters to be used in the search") {
@@ -75,12 +80,29 @@ type MsProductData @doc(description: "The ProductInterface contains attributes t
     small_image: String @doc(description: "Path to thumbnail small image")
     image: String @doc(description: "Path to thumbnail image")
     swatch_image: String @doc(description: "Path to thumbnail swatch image")
-    media_gallery: String @doc(description: "Product media gallery")
+    media_gallery: [MediaGallery] @doc(description: "Product media gallery")
     attributes: [ProductAttribute] @doc(description: "Product attributes")
     category_id: [Int] @doc(description: "Product category ids")
     meta_title: String @doc(description: "Product meta title")
     meta_description: String @doc(description: "Product meta description")
     meta_keywords: String @doc(description: "Product meta keywords")
+    variant_products: [Int] @doc(description: "Product configurable items id")
+    reviews_count: Int @doc(description: "Product reviews count")
+    reviews_average_rating: Float @doc(description: "Product reviews average rating")
+    attribute_codes_is_visible_on_front: String @doc(description: "Attribute codes which is visible on front")
+    stock_total_qty: Int @doc(description: "Total Stock qty - from all sources")
+    special_from_date: String @doc(description: "The first date of the special price promotion")
+    special_to_date: String @doc(description: "Until this date product has special price")
+}
+
+type MediaGallery @doc(description: "Media Gallery") {
+    small_image_url: String @doc(description: "Url of small image")
+    medium_image_url: String @doc(description: "Url of medium image")
+    large_image_url: String @doc(description: "Url of large image")
+    position: Int @doc(description: "Image position")
+    label: String @doc(description: "Image label")
+    media_type: String @doc(description: "Media type")
+    disabled: Boolean @doc(description: "Is image disabled")
 }
 
 type MsProducts @doc(description: "The Products object is the top-level object returned in a product search") {
@@ -170,6 +192,7 @@ type MsSearch @doc(description: "Search Term") {
         pageSize: Int @doc(description: "Specifies the maximum number of results to return at once. This attribute is optional."),
         currentPage: Int = 0 @doc(description: "Specifies which page of results to return. The default value is 0.")
         sort: MsProductSortInput @doc(description: "Specifies which attribute to sort on, and whether to return the results in ascending or descending order.")
+        debug: Boolean
     ): MsProducts @doc(description: "The products query searches for products that match the criteria specified in the search and filter attributes")
     @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Products")
 }
@@ -178,6 +201,10 @@ type urlResolver @doc(description: "") {
     type: String @doc(description: "Type of redirect")
     id: Int @doc(description: "Id umber")
     canonical_url: String @doc(description: "Canonical url")
+}
+
+enum UrlRewriteEntityTypeEnum {
+    REDIRECT
 }
 
 type Attributes @doc(description: "List of attributes") {
@@ -200,6 +227,7 @@ type AttributeOption @doc(description: "Attribute option.") {
 }
 
 type MsCmsPage @doc(description: "CMS page defines all CMS page information") {
+    id: Int @doc(description: "An ID that uniquely identifies the CMS page")
     url_key: String @doc(description: "URL key of CMS page")
     title: String @doc(description: "CMS page title")
     content: String @doc(description: "CMS page content")
@@ -208,6 +236,9 @@ type MsCmsPage @doc(description: "CMS page defines all CMS page information") {
     meta_title: String @doc(description: "CMS page meta title")
     meta_description: String @doc(description: "CMS page meta description")
     meta_keywords: String @doc(description: "CMS page meta keywords")
+    css: String @doc(description: "CMS page CSS styles")
+    js: String @doc(description: "CMS page JS scripts")
+    pwa_special_content: String @doc(description: "CMS page PWA special content code")
 }
 
 type MsCmsBlocks @doc(description: "CMS blocks information") {
@@ -220,6 +251,10 @@ type MsCmsBlock @doc(description: "Cms Block defines all CMS Block information")
     identifier: String @doc(description: "CMS block identifier")
     content: String @doc(description: "CMS block content")
     is_active: Boolean @doc(description: "Is CMS block enabled")
+    css: String @doc(description: "CMS block CSS styles")
+    js: String @doc(description: "CMS block JS scripts")
+    cms_json: String @doc(description: "CMS block json")
+    front_title: String @doc(description: "CMS front title")
 }
 
 type DebugInfo {

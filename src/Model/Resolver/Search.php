@@ -88,6 +88,10 @@ class Search extends AbstractResolver
         }
 
         $searchText = isset($args['query']) ? $this->parseSearchText($args['query']) : '';
+        if (!$searchText) {
+            return [];
+        }
+        
         $magentoSearchQuery = null;
         $isAutosuggest = (isset($args['autosuggest']) && $args['autosuggest']) ? true : false;
 

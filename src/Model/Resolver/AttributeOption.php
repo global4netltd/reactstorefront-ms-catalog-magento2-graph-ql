@@ -57,7 +57,8 @@ class AttributeOption extends AbstractResolver
         QueryHelper $queryHelper,
         EventManager $eventManager,
         AttributeOptionDataProvider $attributeOptionDataProvider
-    ) {
+    )
+    {
         $this->attributeOptionDataProvider = $attributeOptionDataProvider;
 
         parent::__construct($cache, $deploymentConfig, $storeManager, $serializer, $logger, $configHelper, $queryHelper, $eventManager);
@@ -71,6 +72,7 @@ class AttributeOption extends AbstractResolver
      * @param ResolveInfo $info
      * @param array|null $value
      * @param array|null $args
+     *
      * @throws Exception
      * @return mixed|Value
      */
@@ -80,6 +82,28 @@ class AttributeOption extends AbstractResolver
 
         if (!is_array($data)) {
             $data = [];
+        }
+
+        $data = $this->checkIfEmptyValue($data);
+        return $data;
+    }
+
+    /**
+     * TODO
+     *
+     * TEMPORARY FIX !!!!
+     *
+     * TODO
+     * @param $data
+     *
+     * @return mixed
+     */
+    protected function checkIfEmptyValue($data)
+    {
+        foreach ($data as $key => $option) {
+            if (!$option['value']) {
+                unset($data[$key]);
+            }
         }
 
         return $data;

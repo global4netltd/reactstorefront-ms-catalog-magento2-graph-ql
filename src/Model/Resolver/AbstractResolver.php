@@ -85,7 +85,8 @@ abstract class AbstractResolver implements ResolverInterface
         ConfigHelper $configHelper,
         Query $queryHelper,
         EventManager $eventManager
-    ) {
+    )
+    {
         $this->cache = $cache;
         $this->deploymentConfig = $deploymentConfig;
         $this->storeManager = $storeManager;
@@ -102,6 +103,7 @@ abstract class AbstractResolver implements ResolverInterface
      * @param ResolveInfo $info
      * @param array|null $value
      * @param array|null $args
+     *
      * @return mixed|Value
      */
     public abstract function resolve(
@@ -116,6 +118,7 @@ abstract class AbstractResolver implements ResolverInterface
      * @param Document $documentData
      * @param array $queryFields
      * @param string $eventType
+     *
      * @return array
      */
     public function prepareDocumentResult(Document $documentData, array $queryFields = [], string $eventType)
@@ -140,6 +143,7 @@ abstract class AbstractResolver implements ResolverInterface
 
     /**
      * @param $field
+     *
      * @return string
      */
     public function parseToString($field)
@@ -149,6 +153,7 @@ abstract class AbstractResolver implements ResolverInterface
 
     /**
      * @param $url
+     *
      * @return string
      */
     public function parseUrl($url)
@@ -158,5 +163,68 @@ abstract class AbstractResolver implements ResolverInterface
         }
 
         return '';
+    }
+
+    /**
+     * @param array $filters
+     * @param string $type
+     *
+     * @return array
+     * @throws LocalizedException
+     */
+    public function prepareFiltersByArgsFilter(array $filters, $type = 'product')
+    {
+        $preparedFilters = [];
+        foreach ($filters as $key => $filter) {
+            if ($key === 'attributes') {
+                $preparedFilters = array_merge($preparedFilters, $this->prepareAttributes($filter));
+            } else {
+                switch ($type) {
+                    case 'product':
+                        $field = $this->queryHelper->getFieldByProductAttributeCode($key, $filter);
+                        break;
+                    case 'category':
+                        $field = $this->queryHelper->getFieldByCategoryAttributeCode($key, $filter);
+                        break;
+                }
+                
+                $preparedFilters[] = [$field];
+            }
+        }
+
+        return $preparedFilters;
+    }
+
+    /**
+     * @param $attributes
+     *
+     * @return array
+     * @throws LocalizedException
+     */
+    public function prepareAttributes($attributes)
+    {
+        $preparedFilters = [];
+
+        foreach ($attributes as $attribute => $value) {
+            $filterData = explode('=', $value);
+            if (count($filterData) < 2) {
+                continue;
+            }
+            $valueParts = explode(',', $filterData[1]);
+            if (count($valueParts) > 1) {
+                $fieldValue = ['in' => $valueParts];
+            } else {
+                $fieldValue = ['eq' => $filterData[1]];
+            }
+            if ($field = $this->queryHelper->getFieldByAttributeCode(
+                $filterData[0],
+                $this->prepareFilterValue($fieldValue)
+            )) {
+                $field->setExcluded(true);
+                $preparedFilters[] = [$field];
+            }
+        }
+
+        return $preparedFilters;
     }
 }

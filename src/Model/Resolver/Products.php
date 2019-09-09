@@ -13,7 +13,6 @@ use G4NReact\MsCatalogMagento2\Helper\Query;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Parser;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Search as SearchHelper;
 use G4NReact\MsCatalogSolr\FieldHelper;
-use Magento\Catalog\Model\CategoryRepository;
 use Magento\Catalog\Model\Product\Attribute\Source\Status;
 use Magento\Framework\App\CacheInterface;
 use Magento\Framework\App\DeploymentConfig;
@@ -72,16 +71,12 @@ class Products extends AbstractResolver
     public $resolveInfo;
 
     /**
-     * @var CategoryRepository
-     */
-    protected $categoryRepository;
-
-    /**
      * @var FacetsHelper
      */
     protected $facetsHelper;
 
     /**
+     * Products constructor.
      * @var SearchHelper
      */
     protected $searchHelper;
@@ -97,7 +92,6 @@ class Products extends AbstractResolver
      * @param ConfigHelper $configHelper
      * @param Query $queryHelper
      * @param EventManager $eventManager
-     * @param CategoryRepository $categoryRepository
      * @param FacetsHelper $facetsHelper
      * @param SearchHelper $searchHelper
      */
@@ -110,15 +104,22 @@ class Products extends AbstractResolver
         ConfigHelper $configHelper,
         Query $queryHelper,
         EventManager $eventManager,
-        CategoryRepository $categoryRepository,
         FacetsHelper $facetsHelper,
         SearchHelper $searchHelper
     ) {
-        $this->categoryRepository = $categoryRepository;
         $this->facetsHelper = $facetsHelper;
         $this->searchHelper = $searchHelper;
 
-        return parent::__construct($cache, $deploymentConfig, $storeManager, $serializer, $logger, $configHelper, $queryHelper, $eventManager);
+        return parent::__construct(
+            $cache,
+            $deploymentConfig,
+            $storeManager,
+            $serializer,
+            $logger,
+            $configHelper,
+            $queryHelper,
+            $eventManager
+        );
     }
 
     /**
@@ -165,7 +166,7 @@ class Products extends AbstractResolver
         $value = $resolveObject->getValue();
         $args = $resolveObject->getArgs();
 
-        if (isset($args['redirect']) && $args['redirect']) {
+        if ((isset($args['redirect']) && $args['redirect']) || (isset($args['search']) && $args['search'] == '')) {
             return [
                 'items' => [],
                 'total_count' => 0,
@@ -208,6 +209,10 @@ class Products extends AbstractResolver
         $pageSize = (isset($args['pageSize']) && ($args['pageSize'] < $maxPageSize)) ? $args['pageSize'] : $maxPageSize;
         $query->setPageSize($pageSize);
 
+        $currentPage = $args['currentPage'] ?? 1;
+        $query->setCurrentPage($currentPage);
+
+
         if (isset($args['search']) && $args['search']) {
             $this->resolveInfo['total_count'] = true;
             $searchText = Parser::parseSearchText($args['search']);
@@ -223,7 +228,6 @@ class Products extends AbstractResolver
             'prepare_msproduct_resolver_response_after',
             ['response' => $response]
         );
-
         $result = $this->prepareResultData($response, $debug);
 
         if (isset($args['search'])
@@ -280,7 +284,7 @@ class Products extends AbstractResolver
 
         $this->addOutOfStockFilterProducts($query);
 
-        if (isset($args['filter']) && is_array($args['filter']) && ($filters = $this->prepareFiltersByArgsFilter($args['filter']))) {
+        if (isset($args['filter']) && is_array($args['filter']) && ($filters = $this->prepareFiltersByArgsFilter($args['filter'], 'product'))) {
             $query->addFilters($filters);
         }
 
@@ -337,59 +341,6 @@ class Products extends AbstractResolver
                 $this->queryHelper->getFieldByProductAttributeCode('status', Status::STATUS_ENABLED)
             );
         }
-    }
-
-    /**
-     * @param array $filters
-     *
-     * @return array
-     * @throws LocalizedException
-     */
-    public function prepareFiltersByArgsFilter(array $filters)
-    {
-        $preparedFilters = [];
-        foreach ($filters as $key => $filter) {
-            if ($key === 'attributes') {
-                $preparedFilters = array_merge($preparedFilters, $this->prepareAttributes($filter));
-            } else {
-                $field = $this->queryHelper->getFieldByProductAttributeCode($key, $filter);
-                $preparedFilters[] = [$field];
-            }
-        }
-
-        return $preparedFilters;
-    }
-
-    /**
-     * @param $attributes
-     * @return array
-     * @throws LocalizedException
-     */
-    public function prepareAttributes($attributes)
-    {
-        $preparedFilters = [];
-
-        foreach ($attributes as $attribute => $value) {
-            $filterData = explode('=', $value);
-            if (count($filterData) < 2) {
-                continue;
-            }
-            $valueParts = explode(',', $filterData[1]);
-            if (count($valueParts) > 1) {
-                $fieldValue = ['in' => $valueParts];
-            } else {
-                $fieldValue = ['eq' => $filterData[1]];
-            }
-            if ($field = $this->queryHelper->getFieldByAttributeCode(
-                $filterData[0],
-                $this->prepareFilterValue($fieldValue)
-            )) {
-                $field->setExcluded(true);
-                $preparedFilters[] = [$field];
-            }
-        }
-
-        return $preparedFilters;
     }
 
     /**
@@ -482,7 +433,6 @@ class Products extends AbstractResolver
         foreach ($queryFields as $attributeCode => $value) {
             $fieldsToSelect[] = $this->queryHelper->getFieldByAttributeCode($attributeCode);
         }
-
         $query->addFieldsToSelect($fieldsToSelect);
     }
 
@@ -492,13 +442,7 @@ class Products extends AbstractResolver
      */
     public function parseQueryFields(ResolveInfo $info)
     {
-        $queryFields = $info->getFieldSelection(3)['items'] ?? [];
-        foreach ($queryFields as $name => $value) {
-            if (is_array($value)) {
-                unset($queryFields[$name]);
-                continue;
-            }
-        }
+        $queryFields = $info->getFieldSelection(1)['items'] ?? [];
 
         return $queryFields;
     }
