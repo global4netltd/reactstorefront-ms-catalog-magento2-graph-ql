@@ -8,6 +8,7 @@ use G4NReact\MsCatalog\Client\ClientFactory;
 use G4NReact\MsCatalog\Document;
 use G4NReact\MsCatalogMagento2\Helper\Config as ConfigHelper;
 use G4NReact\MsCatalogMagento2\Helper\Query;
+use G4NReact\MsCatalogMagento2GraphQl\Helper\Parser;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Search as SearchHelper;
 use Magento\Framework\App\CacheInterface;
 use Magento\Framework\App\DeploymentConfig;
@@ -87,7 +88,7 @@ class Search extends AbstractResolver
             );
         }
 
-        $searchText = isset($args['query']) ? $this->parseSearchText($args['query']) : '';
+        $searchText = isset($args['query']) ? Parser::parseSearchText($args['query']) : '';
         if (!$searchText) {
             return [];
         }
@@ -137,6 +138,7 @@ class Search extends AbstractResolver
     /**
      * @param string $searchText
      * @return string
+     * @deprecated
      */
     public function parseSearchText(string $searchText): string
     {
