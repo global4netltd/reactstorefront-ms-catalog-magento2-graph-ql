@@ -221,7 +221,7 @@ class Products extends AbstractResolver
             $this->resolveInfo['total_count'] = true;
             $searchText = Parser::parseSearchText($args['search']);
             $query->setQueryText($searchText);
-            $query->setQueryPrepend($query->getQueryPrepend() . $this->configHelper->getConfigByPath('ms_catalog_indexer/search_settings/search_query_boost'));
+            $query->setQueryPrepend($this->configHelper->getConfigByPath('ms_catalog_indexer/search_settings/search_query_boost') . $query->getQueryPrepend());
         }
 
         $this->eventManager->dispatch(
