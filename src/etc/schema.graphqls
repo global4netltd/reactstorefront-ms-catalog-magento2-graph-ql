@@ -77,9 +77,10 @@ type MsProductData @doc(description: "The ProductInterface contains attributes t
     request_path: String @doc(description: "Request path for product")
     categories: [Int] @doc(description: "Array of product categories ids")
     thumbnail: String @doc(description: "Path to thumbnail image")
-    small_image: String @doc(description: "Path to thumbnail small image")
-    image: String @doc(description: "Path to thumbnail image")
-    swatch_image: String @doc(description: "Path to thumbnail swatch image")
+    medium_image: String @doc(description: "Path to medium image")
+    small_image: String @doc(description: "Path to small image")
+    image: String @doc(description: "Path to large image")
+    swatch_image: String @doc(description: "Path to swatch image")
     media_gallery: [MediaGallery] @doc(description: "Product media gallery")
     attributes: [ProductAttribute] @doc(description: "Product attributes")
     category_id: [Int] @doc(description: "Product category ids")
@@ -96,6 +97,7 @@ type MsProductData @doc(description: "The ProductInterface contains attributes t
 }
 
 type MediaGallery @doc(description: "Media Gallery") {
+    swatch_image_url: String @doc(description: "Url of swatch image")
     small_image_url: String @doc(description: "Url of small image")
     medium_image_url: String @doc(description: "Url of medium image")
     large_image_url: String @doc(description: "Url of large image")
