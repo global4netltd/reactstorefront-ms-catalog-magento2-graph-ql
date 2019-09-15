@@ -19,7 +19,7 @@ class Parser
      */
     public static function parseSearchText($text)
     {
-        $searchText = preg_replace('/[^a-zA-Z0-9_\- ]+/ui', '', $text);
+        $searchText = strtolower(preg_replace('/[^a-zA-Z0-9_\- ]+/ui', '', $text));
         $searchText = trim(str_replace('-', ' ', $searchText));
         $searchText = Parser::escape(str_replace('\\', '', $searchText));
         $searchText = Parser::parseIsInt($searchText);
