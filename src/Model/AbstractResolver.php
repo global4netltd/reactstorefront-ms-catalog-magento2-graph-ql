@@ -1,6 +1,6 @@
 <?php
 
-namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
+namespace G4NReact\MsCatalogMagento2GraphQl\Model;
 
 use G4NReact\MsCatalog\Document;
 use G4NReact\MsCatalogMagento2\Helper\Query;

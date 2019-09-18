@@ -9,6 +9,7 @@ use G4NReact\MsCatalog\Document;
 use G4NReact\MsCatalogMagento2\Helper\Config as ConfigHelper;
 use G4NReact\MsCatalogMagento2\Helper\Query;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Search as SearchHelper;
+use G4NReact\MsCatalogMagento2GraphQl\Model\AbstractResolver;
 use Magento\Framework\App\CacheInterface;
 use Magento\Framework\App\DeploymentConfig;
 use Magento\Framework\DataObject;

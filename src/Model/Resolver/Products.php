@@ -13,6 +13,7 @@ use G4NReact\MsCatalogMagento2\Helper\Query;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Parser;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Search as SearchHelper;
 use G4NReact\MsCatalogSolr\FieldHelper;
+use G4NReact\MsCatalogMagento2GraphQl\Model\AbstractResolver;
 use Magento\Catalog\Model\Product\Attribute\Source\Status;
 use Magento\Framework\App\CacheInterface;
 use Magento\Framework\App\DeploymentConfig;

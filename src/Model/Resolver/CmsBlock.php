@@ -3,6 +3,7 @@
 namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
 
 use G4NReact\MsCatalogMagento2\Helper\Cms\CmsBlockField;
+use G4NReact\MsCatalogMagento2GraphQl\Model\AbstractResolver;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Framework\Exception\NoSuchEntityException;

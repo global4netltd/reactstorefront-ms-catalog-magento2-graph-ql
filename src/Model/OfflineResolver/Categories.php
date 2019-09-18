@@ -1,7 +1,6 @@
 <?php
-declare(strict_types=1);
 
-namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
+namespace G4NReact\MsCatalogMagento2GraphQl\Model\OfflineResolver;
 
 use Exception;
 use G4NReact\MsCatalog\Client\ClientFactory;
@@ -69,22 +68,6 @@ class Categories extends AbstractResolver
      */
     public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
     {
-        $resolveObject = new DataObject([
-            'field' => $field,
-            'context' => $context,
-            'resolve_info' => $info,
-            'value' => $value,
-            'args' => $args
-        ]);
-        $this->eventManager->dispatch(
-            self::CATEGORY_OBJECT_TYPE . '_resolver_resolve_before',
-            ['resolve' => $resolveObject]
-        );
-
-        if (empty($args)) {
-            throw new GraphQlInputException(__('id or level for category should be specified'));
-        }
-
         $result = [];
         $queryFields = $this->parseQueryFields($info);
         $categoryIds = $this->getCategoryIds($args);
@@ -150,7 +133,7 @@ class Categories extends AbstractResolver
      * @throws LocalizedException
      * @throws NoSuchEntityException
      */
-    public function getCategoryFromSearchEngine(array $categoryIds = [], $levels = null, $children = false, $queryFields = [], $debug = false)
+    public function getCategories($levels = null, $debug = false)
     {
         $categories = [];
         $searchEngineConfig = $this->configHelper->getConfiguration();

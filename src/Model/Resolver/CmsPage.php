@@ -4,6 +4,7 @@ namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
 
 use G4NReact\MsCatalog\Client\ClientFactory;
 use G4NReact\MsCatalog\ResponseInterface;
+use G4NReact\MsCatalogMagento2GraphQl\Model\AbstractResolver;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\GraphQl\Config\Element\Field;
