@@ -19,10 +19,10 @@ class Parser
      */
     public static function parseSearchText($text)
     {
-        $searchText = strtolower(preg_replace('/[^a-zA-Z0-9_\- ]+/ui', '', $text));
+        $searchText = self::convertPolishLetters($text);
+        $searchText = strtolower(preg_replace('/[^a-zA-Z0-9_\- ]+/ui', '', $searchText));
         $searchText = trim(str_replace('-', ' ', $searchText));
         $searchText = Parser::escape(str_replace('\\', '', $searchText));
-        $searchText = self::convertPolishLetters($searchText);
         $searchText = Parser::parseIsInt($searchText);
 
         return $searchText;
