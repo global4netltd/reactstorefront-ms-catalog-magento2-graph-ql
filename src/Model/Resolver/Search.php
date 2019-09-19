@@ -96,6 +96,13 @@ class Search extends AbstractResolver
         $magentoSearchQuery = null;
         $isAutosuggest = (isset($args['autosuggest']) && $args['autosuggest']) ? true : false;
 
+        $searchObject = new DataObject();
+        $searchObject->setText($searchText);
+        $this->eventManager->dispatch(
+            'prepare_mssearch_search_text_before', ['search_object' => $searchObject]
+        );
+        $searchText = $searchObject->getText();
+
         // get search term from solr
         $searchTermDocument = $this->getSearchTermFromSearchEngine($searchText);
 
@@ -170,6 +177,7 @@ class Search extends AbstractResolver
             )],
             [new Document\Field('query_text', $searchText, Document\Field::FIELD_TYPE_STRING, true, false)],
         ]);
+
         $response = $getSearchTermQuery->getResponse();
         /** @var Document $searchTerm */
         $searchTerm = $response->getFirstItem();
