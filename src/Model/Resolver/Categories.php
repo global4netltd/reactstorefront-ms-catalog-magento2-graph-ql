@@ -119,7 +119,7 @@ class Categories extends AbstractResolver
             return $resultObject->getData('result');
         }
 
-        return new Document();
+        return [];
     }
 
     /**

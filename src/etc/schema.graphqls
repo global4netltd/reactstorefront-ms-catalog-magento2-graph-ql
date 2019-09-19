@@ -32,7 +32,7 @@ type Query {
         identifiers: [String] @doc(description: "Identifiers of the CMS blocks")
     ): MsCmsBlocks @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\CmsBlock") @doc(description: "The CMS block query returns information about a CMS block")
     offlineCategories (
-        depth: [Int] @doc(description: "Maximum level of categories")
+        depth: Int @doc(description: "Maximum level of categories")
         debug: Boolean
     ): MsCategories @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\OfflineResolver\\Categories")
 }
