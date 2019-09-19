@@ -177,7 +177,7 @@ abstract class AbstractResolver implements ResolverInterface
         $preparedFilters = [];
         foreach ($filters as $key => $filter) {
             if ($key === 'attributes') {
-                $preparedFilters = array_merge($preparedFilters, $this->prepareAttributes($filter));
+                $preparedFilters = array_merge($preparedFilters, $this->prepareAttributes($filter, $type));
             } else {
                 switch ($type) {
                     case 'product':
@@ -187,7 +187,7 @@ abstract class AbstractResolver implements ResolverInterface
                         $field = $this->queryHelper->getFieldByCategoryAttributeCode($key, $filter);
                         break;
                 }
-                
+
                 $preparedFilters[] = [$field];
             }
         }
@@ -201,7 +201,7 @@ abstract class AbstractResolver implements ResolverInterface
      * @return array
      * @throws LocalizedException
      */
-    public function prepareAttributes($attributes)
+    public function prepareAttributes($attributes, $type)
     {
         $preparedFilters = [];
 
@@ -216,15 +216,61 @@ abstract class AbstractResolver implements ResolverInterface
             } else {
                 $fieldValue = ['eq' => $filterData[1]];
             }
-            if ($field = $this->queryHelper->getFieldByAttributeCode(
-                $filterData[0],
-                $this->prepareFilterValue($fieldValue)
-            )) {
+            switch ($type) {
+                case 'product':
+                    $field = $this->queryHelper->getFieldByProductAttributeCode($filterData[0], $this->prepareFilterValue($fieldValue));
+                    break;
+                case 'category':
+                    $field = $this->queryHelper->getFieldByCategoryAttributeCode($filterData[0], $this->prepareFilterValue($fieldValue));
+                    break;
+                default :
+                    $field = $this->queryHelper->getFieldByAttributeCode($filterData[0], $this->prepareFilterValue($fieldValue));
+            }
+            if ($field) {
                 $field->setExcluded(true);
                 $preparedFilters[] = [$field];
             }
         }
 
         return $preparedFilters;
+    }
+
+    /**
+     * @param array $value
+     *
+     * @return array|Document\FieldValue|string
+     */
+    protected function prepareFilterValue(array $value)
+    {
+        // temporary leave below
+
+        $key = key($value);
+        if (count($value) > 1) {
+            return implode(',', $value);
+        }
+
+        if ($key) {
+            if (isset($value[$key]) && !is_numeric($value[$key]) && !is_array($value[$key])) {
+                return $value[$key];
+            }
+            switch ($key) {
+                case 'in':
+                    return $value[$key];
+                case 'gt':
+                    return new Document\FieldValue(null, $value[$key] + 1, Document\FieldValue::IFINITY_CHARACTER);
+                case 'lt':
+                    return new Document\FieldValue(null, Document\FieldValue::IFINITY_CHARACTER, $value[$key] - 1);
+                case 'gteq':
+                    return new Document\FieldValue(null, $value[$key], Document\FieldValue::IFINITY_CHARACTER);
+                case 'lteq':
+                    return new Document\FieldValue(null, Document\FieldValue::IFINITY_CHARACTER, $value[$key]);
+                case 'eq':
+                default:
+                    return (string)$value[$key];
+
+            }
+        }
+
+        return '';
     }
 }

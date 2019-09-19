@@ -98,7 +98,7 @@ class Categories extends AbstractResolver
         }
 
         if ($levels || count($categoryIds)) {
-            $result = $this->getCategoryFromSearchEngine($categoryIds, $levels, $children, $queryFields, $debug);
+            $result = $this->getCategoryFromSearchEngine($categoryIds, $levels, $children, $queryFields, $args, $debug);
         }
 
         if (!empty($result)) {
@@ -150,7 +150,7 @@ class Categories extends AbstractResolver
      * @throws LocalizedException
      * @throws NoSuchEntityException
      */
-    public function getCategoryFromSearchEngine(array $categoryIds = [], $levels = null, $children = false, $queryFields = [], $debug = false)
+    public function getCategoryFromSearchEngine(array $categoryIds = [], $levels = null, $children = false, $queryFields = [], $args = [], $debug = false)
     {
         $categories = [];
         $searchEngineConfig = $this->configHelper->getConfiguration();
@@ -158,7 +158,7 @@ class Categories extends AbstractResolver
         $msCatalogForCategory = $searchEngineClient->getQuery();
         $msCatalogForCategory->setPageStart(0);
 
-        $this->handleFilters($msCatalogForCategory, $queryFields);
+        $this->handleFilters($msCatalogForCategory, $args);
 
         $fieldsToSelect = [];
         foreach ($queryFields as $attributeCode => $value) {

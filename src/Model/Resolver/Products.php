@@ -292,45 +292,6 @@ class Products extends AbstractResolver
     }
 
     /**
-     * @param array $value
-     *
-     * @return array|Document\FieldValue|string
-     */
-    protected function prepareFilterValue(array $value)
-    {
-        // temporary leave below
-
-        $key = key($value);
-        if (count($value) > 1) {
-            return implode(',', $value);
-        }
-
-        if ($key) {
-            if (isset($value[$key]) && !is_numeric($value[$key]) && !is_array($value[$key])) {
-                return $value[$key];
-            }
-            switch ($key) {
-                case 'in':
-                    return $value[$key];
-                case 'gt':
-                    return new Document\FieldValue(null, $value[$key] + 1, Document\FieldValue::IFINITY_CHARACTER);
-                case 'lt':
-                    return new Document\FieldValue(null, Document\FieldValue::IFINITY_CHARACTER, $value[$key] - 1);
-                case 'gteq':
-                    return new Document\FieldValue(null, $value[$key], Document\FieldValue::IFINITY_CHARACTER);
-                case 'lteq':
-                    return new Document\FieldValue(null, Document\FieldValue::IFINITY_CHARACTER, $value[$key]);
-                case 'eq':
-                default:
-                    return (string)$value[$key];
-
-            }
-        }
-
-        return '';
-    }
-
-    /**
      * @param QueryInterface $query
      * @throws LocalizedException
      */
