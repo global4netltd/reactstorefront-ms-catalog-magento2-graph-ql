@@ -109,31 +109,31 @@ class Categories extends AbstractResolver
         $searchEngineClient = ClientFactory::create($searchEngineConfig);
         $categoryQuery = $searchEngineClient->getQuery();
         $this->addBaseFilters($categoryQuery);
-//        $categoryQuery->setPageStart(0);
-//        $categoryQuery->setPageSize(99999);
-//
-//        $fieldsToSelect = [];
-//        foreach ($queryFields as $attributeCode => $value) {
-//            $fieldsToSelect[] = $this->queryHelper->getFieldByCategoryAttributeCode($attributeCode);
-//        }
-//
-//        $categoryQuery->addFieldsToSelect($fieldsToSelect);
-//
-//        $categoryQuery->addFilters([
-//            [
-//                $this->queryHelper->getFieldByCategoryAttributeCode(
-//                    'level',
-//                    new Document\FieldValue (null, 0, (int)$depth)
-//                )
-//            ],
-//        ]);
-//
-//        $categoryQuery->setSorts([
-//            $this->queryHelper
-//                ->getFieldByCategoryAttributeCode('level', 'ASC'),
-//            $this->queryHelper
-//                ->getFieldByCategoryAttributeCode('position', 'ASC'),
-//        ]);
+        $categoryQuery->setPageStart(0);
+        $categoryQuery->setPageSize(99999);
+
+        $fieldsToSelect = [];
+        foreach ($queryFields as $attributeCode => $value) {
+            $fieldsToSelect[] = $this->queryHelper->getFieldByCategoryAttributeCode($attributeCode);
+        }
+
+        $categoryQuery->addFieldsToSelect($fieldsToSelect);
+
+        $categoryQuery->addFilters([
+            [
+                $this->queryHelper->getFieldByCategoryAttributeCode(
+                    'level',
+                    new Document\FieldValue (null, '*', (int)$depth)
+                )
+            ],
+        ]);
+
+        $categoryQuery->setSorts([
+            $this->queryHelper
+                ->getFieldByCategoryAttributeCode('level', 'ASC'),
+            $this->queryHelper
+                ->getFieldByCategoryAttributeCode('position', 'ASC'),
+        ]);
 
         $categoryResult = $categoryQuery->getResponse();
         $debugInfo = [];
