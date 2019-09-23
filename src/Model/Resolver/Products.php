@@ -353,6 +353,13 @@ class Products extends AbstractResolver
     public function handleFacets($query, $args)
     {
         if ($categoryFilter = $query->getFilter('category_id')) {
+            /**
+             * @todo check if value should be eq here, handle it in another way
+             */
+            $value = $categoryFilter['field']->getValue();
+            if (is_array($value) && isset($value['eq'])) {
+                $value = $value['eq'];
+            }
             $facetFields = $this->facetsHelper->getFacetFieldsByCategory($categoryFilter['field']->getValue());
 //            $query->addFacets($facetFields);
             $query->addFacets($facetFields);
