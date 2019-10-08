@@ -250,6 +250,17 @@ class Products extends AbstractResolver
         );
         $result = $resultObject->getData('result');
 
+        if(isset($args['filter']['ids']) && isset($result['items'])){
+            $order = $args['filter']['ids'];
+            usort($result['items'], function ($a, $b) use ($order) {
+                $pos_a = array_search($a['id'], $order);
+                $pos_b = array_search($b['id'], $order);
+                return $pos_a - $pos_b;
+            });
+        }
+
+
+
         // set args to context for eager loading etc. purposes
         $context->msProductsArgs = $args;
         $context->msProducts = $result;
@@ -360,11 +371,11 @@ class Products extends AbstractResolver
             if (is_array($value) && isset($value['eq'])) {
                 $value = $value['eq'];
             }
-            $facetFields = $this->facetsHelper->getFacetFieldsByCategory($categoryFilter['field']->getValue());
+            $facetFields = $this->facetsHelper->getFacetFieldsByCategory($value);
 //            $query->addFacets($facetFields);
             $query->addFacets($facetFields);
 
-            $statsFields = $this->facetsHelper->getStatsFieldsByCategory($categoryFilter['field']->getValue());
+            $statsFields = $this->facetsHelper->getStatsFieldsByCategory($value);
             $query->addStats($statsFields);
         }
 
