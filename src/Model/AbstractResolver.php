@@ -213,9 +213,13 @@ abstract class AbstractResolver implements ResolverInterface
             $valueParts = explode(',', $filterData[1]);
             if (count($valueParts) > 1) {
                 $fieldValue = ['in' => $valueParts];
+            } else if (strpos($filterData[1], ':') !== false) {
+                $rangeArray = explode(':', $filterData[1]);
+                $fieldValue = ['range' => ['from' => $rangeArray[0], 'to' => $rangeArray[1]]];
             } else {
                 $fieldValue = ['eq' => $filterData[1]];
             }
+
             switch ($type) {
                 case 'product':
                     $field = $this->queryHelper->getFieldByProductAttributeCode($filterData[0], $this->prepareFilterValue($fieldValue));
@@ -243,7 +247,6 @@ abstract class AbstractResolver implements ResolverInterface
     protected function prepareFilterValue(array $value)
     {
         // temporary leave below
-
         $key = key($value);
         if (count($value) > 1) {
             return implode(',', $value);
@@ -253,9 +256,12 @@ abstract class AbstractResolver implements ResolverInterface
             if (isset($value[$key]) && !is_numeric($value[$key]) && !is_array($value[$key])) {
                 return $value[$key];
             }
+
             switch ($key) {
                 case 'in':
                     return $value[$key];
+                case 'range':
+                    return new Document\FieldValue(null, $value[$key]['from'], $value[$key]['to']);
                 case 'gt':
                     return new Document\FieldValue(null, $value[$key] + 1, Document\FieldValue::IFINITY_CHARACTER);
                 case 'lt':
