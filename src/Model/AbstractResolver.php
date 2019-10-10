@@ -215,6 +215,14 @@ abstract class AbstractResolver implements ResolverInterface
                 $fieldValue = ['in' => $valueParts];
             } else if (strpos($filterData[1], ':') !== false) {
                 $rangeArray = explode(':', $filterData[1]);
+
+                if($rangeArray[0] > $rangeArray[1]){
+                    $rangeArray = array_reverse($rangeArray);
+                }
+                if($rangeArray[0] == $rangeArray[1]){
+                    $rangeArray[1]++;
+                }
+
                 $fieldValue = ['range' => ['from' => $rangeArray[0], 'to' => $rangeArray[1]]];
             } else {
                 $fieldValue = ['eq' => $filterData[1]];
