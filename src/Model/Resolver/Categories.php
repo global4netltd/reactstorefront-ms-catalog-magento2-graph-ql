@@ -210,7 +210,21 @@ class Categories extends AbstractResolver
                 $solrCategory = $this->prepareDocumentResult($category, $queryFields, 'mscategory');
                 if ($levels) {
                     if (isset($solrCategory['parent_id']) && ($solrCategory['parent_id'] > 2)) {
-                        $categories[$solrCategory['parent_id']]['children'][$solrCategory['id']] = $solrCategory;
+                        if (array_key_exists($solrCategory['parent_id'], $categories)) {
+                            $categories[$solrCategory['parent_id']]['children'][$solrCategory['id']] = $solrCategory;
+                        } else {
+                            $childrenArray = array_column($categories, 'children');
+                            $mergedChildrenArray = [];
+                            foreach($childrenArray as $elem) {
+                                $mergedChildrenArray = array_merge($mergedChildrenArray, array_values($elem));
+                            }
+
+                            $idParent = array_search($solrCategory['parent_id'], array_column( $mergedChildrenArray, 'id'));
+                            $mergedChildrenArray[$idParent]['children'][$solrCategory['id']] = $solrCategory;
+                            if ($mergedChildrenArray[$idParent]['parent_id'] ?? null) {
+                                $categories[$mergedChildrenArray[$idParent]['parent_id']]['children'][$solrCategory['parent_id']] = $mergedChildrenArray[$idParent];
+                            }
+                        }
                     } else {
                         if (isset($categories[$solrCategory['id']])) {
                             $categories[$solrCategory['id']] = array_merge($solrCategory, $categories[$solrCategory['id']]);
