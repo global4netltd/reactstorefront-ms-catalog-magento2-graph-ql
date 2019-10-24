@@ -220,9 +220,11 @@ class Categories extends AbstractResolver
                             }
 
                             $idParent = array_search($solrCategory['parent_id'], array_column( $mergedChildrenArray, 'id'));
-                            $mergedChildrenArray[$idParent]['children'][$solrCategory['id']] = $solrCategory;
-                            if ($mergedChildrenArray[$idParent]['parent_id'] ?? null) {
-                                $categories[$mergedChildrenArray[$idParent]['parent_id']]['children'][$solrCategory['parent_id']] = $mergedChildrenArray[$idParent];
+                            if ($idParent !== false) {
+                                $mergedChildrenArray[$idParent]['children'][$solrCategory['id']] = $solrCategory;
+                                if ($mergedChildrenArray[$idParent]['parent_id'] ?? null) {
+                                    $categories[$mergedChildrenArray[$idParent]['parent_id']]['children'][$solrCategory['parent_id']] = $mergedChildrenArray[$idParent];
+                                }
                             }
                         }
                     } else {
