@@ -28,6 +28,10 @@ use Psr\Log\LoggerInterface;
  */
 class Attribute extends AbstractResolver
 {
+    
+    /** @var string category_id attribute code */
+    const CATEGORY_ID = 'category_id';
+    
     /**
      * @var AttributeDataProvider
      */
@@ -88,6 +92,7 @@ class Attribute extends AbstractResolver
         }
 
         foreach ($args['attributeCodes'] as $attributeCode) {
+            $attributes = $this->handleCategoryAttribute($attributes, $attributeCode);
             $data['attributes'][] = [
                 'attribute_code'    => $attributeCode,
                 'attribute_id'      => (int)($attributes[$attributeCode]['attribute_id'] ?? 0),
@@ -101,5 +106,20 @@ class Attribute extends AbstractResolver
         }
 
         return $data;
+    }
+
+    protected function handleCategoryAttribute(array $attributes, string $attributeCode)
+    {
+        if($attributeCode == self::CATEGORY_ID && !isset($attributes[$attributeCode])){
+            /** TODO handle translations */
+            $attributeData['frontend_label'] = 'Kategoria';
+            $attributeData['backend_type'] = 'int';
+            $attributeData['frontend_input'] = 'select';
+            $attributeData['attribute_type'] = 'select';
+
+            $attributes[$attributeCode] = $attributeData;
+        }
+        
+        return $attributes;
     }
 }
