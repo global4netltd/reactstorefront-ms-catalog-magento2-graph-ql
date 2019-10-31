@@ -114,7 +114,7 @@ class Search extends AbstractResolver
         }
 
         // if redirect -> set redirect info
-        if ($canonicalUrl = $this->sanitizeCanonicalUrl($searchTermDocument->getFieldValue('redirect'))) {
+        if (!$isAutosuggest && $canonicalUrl = $this->sanitizeCanonicalUrl($searchTermDocument->getFieldValue('redirect'))) {
             $return = [
                 'redirect' => [
                     'type'          => 'REDIRECT',
