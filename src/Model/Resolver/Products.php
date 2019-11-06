@@ -212,7 +212,6 @@ class Products extends AbstractResolver
         $currentPage = $args['currentPage'] ?? 1;
         $query->setCurrentPage($currentPage);
 
-
         if (isset($args['search']) && $args['search']) {
             $this->resolveInfo['total_count'] = true;
             $searchText = Parser::parseSearchText($args['search']);
@@ -258,8 +257,6 @@ class Products extends AbstractResolver
                 return $pos_a - $pos_b;
             });
         }
-
-
 
         // set args to context for eager loading etc. purposes
         $context->msProductsArgs = $args;
@@ -478,10 +475,17 @@ class Products extends AbstractResolver
 
             $productData = [];
             foreach ($productDocument->getFields() as $field) {
-                if ($field->getName() == 'sku') {
-                    $productIds[] = $field->getValue();
+                $name = $field->getName();
+                $value = $field->getValue();
+
+                if ($name == 'sku') {
+                    $productIds[] = $value;
                 }
-                $productData[$field->getName()] = $field->getValue();
+                if ($name == 'inventory_sources') {
+                    $value = $this->prepareInventorySourcesValue($value);
+                }
+
+                $productData[$name] = $value;
             }
 
             $this->eventManager->dispatch('prepare_msproduct_resolver_result_after', ['productData' => $productData]);
@@ -493,6 +497,17 @@ class Products extends AbstractResolver
         ksort($products);
 
         return ['items' => $products, 'items_ids' => $productIds];
+    }
+
+    /**
+     * @param string $value
+     * @return array
+     */
+    protected function prepareInventorySourcesValue(string $value): array
+    {
+        $preparedValue = json_decode($value, true);
+
+        return ($preparedValue && is_array($preparedValue)) ? $preparedValue : [];
     }
 
     /**
@@ -544,6 +559,8 @@ class Products extends AbstractResolver
     }
 
     /**
+     * @ToDo: Will we use it?
+     *
      * @param array $solrAttributes
      * @return array
      */
@@ -560,6 +577,8 @@ class Products extends AbstractResolver
     }
 
     /**
+     * @ToDo: Will we use it?
+     *
      * @param Document $document
      * @return array
      */
