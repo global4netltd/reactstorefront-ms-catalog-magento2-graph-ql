@@ -96,6 +96,7 @@ type MsProductData @doc(description: "The ProductInterface contains attributes t
     reviews_average_rating: Float @doc(description: "Product reviews average rating")
     attribute_codes_is_visible_on_front: String @doc(description: "Attribute codes which is visible on front")
     stock_total_qty: Int @doc(description: "Total Stock qty - from all sources")
+    inventory_sources: [InventorySourceItem] @doc(description: "Quantity and status in all sources")
     special_from_date: String @doc(description: "The first date of the special price promotion")
     special_to_date: String @doc(description: "Until this date product has special price")
 }
@@ -109,6 +110,12 @@ type MediaGallery @doc(description: "Media Gallery") {
     label: String @doc(description: "Image label")
     media_type: String @doc(description: "Media type")
     disabled: Boolean @doc(description: "Is image disabled")
+}
+
+type InventorySourceItem @doc(description: "Inventory source item") {
+    source_code: String @doc(description: "Inventory source code")
+    quantity: Int @doc(description: "Product quantity in source")
+    status: Int @doc(description: "Source item status 0/1")
 }
 
 type MsProducts @doc(description: "The Products object is the top-level object returned in a product search") {
