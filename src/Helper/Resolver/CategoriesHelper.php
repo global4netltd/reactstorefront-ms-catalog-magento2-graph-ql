@@ -17,7 +17,7 @@ class CategoriesHelper
      */
     public function addChildToCategories(array &$categories, int $parentId, $childCategory, int $maxLevel = 2)
     {
-        if(isset($childCategory['level']) && $childCategory['level'] > $maxLevel){
+        if($maxLevel !== 0 && isset($childCategory['level']) && $childCategory['level'] > $maxLevel){
             return $categories;
         }
         if (isset($categories[$parentId])) {
