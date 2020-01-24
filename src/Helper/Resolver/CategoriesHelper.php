@@ -24,6 +24,9 @@ class CategoriesHelper
             $categories[$parentId]['children'][] = $childCategory;
             return $categories;
         }
+        if($parentId > 14){
+            $test = $parentId;
+        }
         foreach ($categories as &$category) {
             if (isset($category['id']) && (int) $category['id'] === $parentId) {
                 $category['children'][] = $childCategory;
@@ -32,7 +35,6 @@ class CategoriesHelper
             if (isset($category['children']) && is_array($category['children'])) {
                 $category['children'] = $this
                     ->addChildToCategories($category['children'], $parentId, $childCategory, $maxLevel);
-                return $categories;
             }
         }
 
