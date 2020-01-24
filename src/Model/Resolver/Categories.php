@@ -3,18 +3,26 @@ declare(strict_types=1);
 
 namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
 
-use Exception;
 use G4NReact\MsCatalog\Client\ClientFactory;
 use G4NReact\MsCatalog\Document;
 use G4NReact\MsCatalog\QueryInterface;
+use G4NReact\MsCatalogMagento2\Helper\Config as ConfigHelper;
+use G4NReact\MsCatalogMagento2\Helper\Query;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Parser;
+use G4NReact\MsCatalogMagento2GraphQl\Helper\Resolver\CategoriesHelper;
 use G4NReact\MsCatalogMagento2GraphQl\Model\AbstractResolver;
+use Magento\Framework\App\CacheInterface;
+use Magento\Framework\App\DeploymentConfig;
 use Magento\Framework\DataObject;
+use Magento\Framework\Event\Manager as EventManager;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Exception\GraphQlInputException;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
+use Magento\Framework\Serialize\Serializer\Json;
+use Magento\Store\Model\StoreManagerInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * Categories tree field resolver, used for GraphQL request processing.
@@ -31,28 +39,23 @@ class Categories extends AbstractResolver
      */
     const CATEGORY_OBJECT_TYPE = 'category';
 
-    /**
-     * Get category id
-     *
-     * @param array $args
-     *
-     * @return array
-     */
-    private function getCategoryIds(array $args): array
-    {
-        $ids = (isset($args['ids']) && (count($args['ids']) > 0)) ? $args['ids'] : [];
-        return Parser::parseArrayIsInt($ids);
-    }
+    protected $categoriesHelper;
 
-    /**
-     * @param array $args
-     *
-     * @return array
-     */
-    private function getLevel(array $args): array
+
+    public function __construct(
+        CacheInterface $cache,
+        DeploymentConfig $deploymentConfig,
+        StoreManagerInterface $storeManager,
+        Json $serializer,
+        LoggerInterface $logger,
+        ConfigHelper $configHelper,
+        Query $queryHelper,
+        EventManager $eventManager,
+        CategoriesHelper $categoriesHelper
+    )
     {
-        $levels = $args['levels'] ?? [];
-        return array_map('intval', $levels);
+        $this->categoriesHelper = $categoriesHelper;
+        parent::__construct($cache, $deploymentConfig, $storeManager, $serializer, $logger, $configHelper, $queryHelper, $eventManager);
     }
 
     /**
@@ -141,6 +144,30 @@ class Categories extends AbstractResolver
     }
 
     /**
+     * Get category id
+     *
+     * @param array $args
+     *
+     * @return array
+     */
+    private function getCategoryIds(array $args): array
+    {
+        $ids = (isset($args['ids']) && (count($args['ids']) > 0)) ? $args['ids'] : [];
+        return Parser::parseArrayIsInt($ids);
+    }
+
+    /**
+     * @param array $args
+     *
+     * @return array
+     */
+    private function getLevel(array $args): array
+    {
+        $levels = $args['levels'] ?? [];
+        return array_map('intval', $levels);
+    }
+
+    /**
      * @param array $categoryIds
      * @param null $levels
      * @param bool $children
@@ -210,11 +237,10 @@ class Categories extends AbstractResolver
             foreach ($categoryResult->getDocumentsCollection() as $category) {
                 $solrCategory = $this->prepareDocumentResult($category, $queryFields, 'mscategory');
                 if ($levels) {
+                    $maxLevels = max($levels);
                     if (isset($solrCategory['parent_id']) && ($solrCategory['parent_id'] > 2)) {
-                        if (!isset($categories[$solrCategory['parent_id']])) {
-                            continue;
-                        }
-                        $categories[$solrCategory['parent_id']]['children'][$solrCategory['id']] = $solrCategory;
+                        $categories = $this->categoriesHelper
+                            ->addChildToCategories($categories, $solrCategory['parent_id'], $solrCategory, max($levels));
                     } else {
                         if (isset($categories[$solrCategory['id']])) {
                             $categories[$solrCategory['id']] = array_merge($solrCategory, $categories[$solrCategory['id']]);
@@ -287,7 +313,7 @@ class Categories extends AbstractResolver
     protected function handleFilters(QueryInterface $query, array $args)
     {
         $storeId = $this->storeManager->getStore()->getId();
-        
+
         $query->addFilters([
             [
                 $this->queryHelper->getFieldByCategoryAttributeCode('store_id', $storeId)
@@ -303,8 +329,8 @@ class Categories extends AbstractResolver
     }
 
     /**
-     * @todo rethink it, maybe put max page size in configuration or sth
      * @return int
+     * @todo rethink it, maybe put max page size in configuration or sth
      */
     public function getMaxPageSize()
     {
