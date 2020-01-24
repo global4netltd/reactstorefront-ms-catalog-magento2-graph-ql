@@ -24,9 +24,6 @@ class CategoriesHelper
             $categories[$parentId]['children'][] = $childCategory;
             return $categories;
         }
-        if($parentId > 14){
-            $test = $parentId;
-        }
         foreach ($categories as &$category) {
             if (isset($category['id']) && (int) $category['id'] === $parentId) {
                 $category['children'][] = $childCategory;
