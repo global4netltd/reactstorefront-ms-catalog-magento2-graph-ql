@@ -97,9 +97,10 @@ class Search extends AbstractResolver
         $isAutosuggest = (isset($args['autosuggest']) && $args['autosuggest']) ? true : false;
 
         // get search term from solr
-        $searchTermDocument = $this->getSearchTermFromSearchEngine($searchText);
 
-        // @ToDo: handle synonyms, somehow...
+        $synonymDocument = $this->getSynonymFromSearchEngine($searchText);
+
+        $searchTermDocument = $synonymDocument->getData() ? $synonymDocument : $this->getSearchTermFromSearchEngine($searchText);
 
         // update search term in magento
         if (!$isAutosuggest) {
@@ -170,6 +171,37 @@ class Search extends AbstractResolver
             [new Document\Field('query_text', $searchText, Document\Field::FIELD_TYPE_STRING, true, false)],
         ]);
         $response = $getSearchTermQuery->getResponse();
+        /** @var Document $searchTerm */
+        $searchTerm = $response->getFirstItem();
+
+        return $searchTerm;
+    }
+
+    /**
+     * @param string $searchText
+     * @return Document
+     * @throws LocalizedException
+     * @throws NoSuchEntityException
+     */
+    protected function getSynonymFromSearchEngine(string $searchText)
+    {
+        $searchEngineConfig = $this->configHelper->getConfiguration();
+        $searchEngineClient = ClientFactory::create($searchEngineConfig);
+
+        $getSynonymsQuery = $searchEngineClient->getQuery();
+
+        $getSynonymsQuery->addFilters([
+            [$this->queryHelper->getFieldByProductAttributeCode(
+                'store_id',
+                $this->storeManager->getStore()->getId()
+            )],
+            [$this->queryHelper->getFieldByProductAttributeCode(
+                'object_type',
+                'search_term'
+            )],
+            [new Document\Field('synonyms', $searchText, Document\Field::FIELD_TYPE_STRING, true, true)],
+        ]);
+        $response = $getSynonymsQuery->getResponse();
         /** @var Document $searchTerm */
         $searchTerm = $response->getFirstItem();
 
