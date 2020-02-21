@@ -43,7 +43,7 @@ input MsProductFilterInput @doc(description: "ProductFilterInput defines the fil
     custom: [MsCustomFilter] @doc(description: "Custom attribute for filters")
     id_type: IdTypeEnum @doc(description: "Type of returned product id")
     ids: [Int] @doc(description: "Table of numbers uniquely assigned to the product")
-    skus: [Int] @doc(description: "Table of numbers or codes assigned to the product")
+    skus: [String] @doc(description: "Table of numbers or codes assigned to the product")
 }
 
 input MsCategoryFilterInput @doc(description: "CategoryFilterInput defines the filters to be used in the search. A filter contains at least one attribute, a comparison operator, and the value that is being searched for.") {
