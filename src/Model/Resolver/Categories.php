@@ -261,6 +261,11 @@ class Categories extends AbstractResolver
                     $categories[] = $solrCategory;
                 }
             }
+        } else { // query for category (ids) with children but category doesn't have any children
+            $categories = [];
+            foreach ($categoryIds as $categoryId) {
+                $categories[$categoryId] = []; // we still should return parent categories
+            }
         }
 
         if ($children) {
