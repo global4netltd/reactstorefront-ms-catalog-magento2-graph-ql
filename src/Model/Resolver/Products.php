@@ -369,7 +369,6 @@ class Products extends AbstractResolver
                 $value = $value['eq'];
             }
             $facetFields = $this->facetsHelper->getFacetFieldsByCategory($value);
-//            $query->addFacets($facetFields);
             $query->addFacets($facetFields);
 
             $statsFields = $this->facetsHelper->getStatsFieldsByCategory($value);
@@ -384,7 +383,11 @@ class Products extends AbstractResolver
 
         if ($baseFacets = $this->configHelper->getProductAttributesBaseFacets()) {
             foreach ($baseFacets as $baseFacet) {
-                $query->addFacet($this->queryHelper->getFieldByAttributeCode($baseFacet));
+                $facetField = $this->queryHelper->getFieldByAttributeCode($baseFacet);
+                if ($baseFacet === 'price') {
+                    $facetField->setData('limit', -1);
+                }
+                $query->addFacet($facetField);
             }
         }
 
