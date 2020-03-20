@@ -100,6 +100,6 @@ class CmsBlock extends AbstractResolver
             }
         }
 
-        return $cmsBlocks ? ['items' => $cmsBlocks] : [];
+        return ['items' => $cmsBlocks ?: []];
     }
 }
