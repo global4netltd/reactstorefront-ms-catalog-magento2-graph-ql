@@ -108,7 +108,12 @@ class Attribute extends AbstractResolver
         return $data;
     }
 
-    protected function handleCategoryAttribute(array $attributes, string $attributeCode)
+    /**
+     * @param array $attributes
+     * @param string $attributeCode
+     * @return array
+     */
+    public function handleCategoryAttribute(array $attributes, string $attributeCode)
     {
         if($attributeCode == self::CATEGORY_ID && !isset($attributes[$attributeCode])){
             /** TODO handle translations */
