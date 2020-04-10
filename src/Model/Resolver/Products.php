@@ -385,7 +385,7 @@ class Products extends AbstractResolver
             foreach ($baseFacets as $baseFacet) {
                 $facetField = $this->queryHelper->getFieldByAttributeCode($baseFacet);
                 if ($baseFacet === 'price') {
-                    $facetField->setData('limit', -1);
+                    $facetField->setData('limit', 0); // we use stats for price filter
                 }
                 $query->addFacet($facetField);
             }
