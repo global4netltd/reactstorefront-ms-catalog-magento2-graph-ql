@@ -161,11 +161,11 @@ class Products extends AbstractResolver
         }
 
         $resolveObject = new DataObject([
-            'field'        => $field,
-            'context'      => $context,
+            'field' => $field,
+            'context' => $context,
             'resolve_info' => $info,
-            'value'        => $value,
-            'args'         => $args
+            'value' => $value,
+            'args' => $args
         ]);
         $this->eventManager->dispatch(
             self::PRODUCT_OBJECT_TYPE . '_resolver_resolve_before',
@@ -195,7 +195,7 @@ class Products extends AbstractResolver
             || (isset($this->resolveInfo['items_ids']));
 
         $queryFields = [];
-        if(!$onlySku){
+        if (!$onlySku) {
             $queryFields = $info->getFieldSelection(3)['items'] ?? [];
         }
 
@@ -212,14 +212,14 @@ class Products extends AbstractResolver
         );
         $response = $query->getResponse();
 
-        if(
-            $searchQuery &&
-            $response->getNumFound() === 0 &&
-            $this->configHelper->getConfigByPath(ConfigHelper::SPELL_CHECKING_ENABLED)
+        if (
+            $searchQuery
+            && $response->getNumFound() === 0
+            && $this->configHelper->getConfigByPath(ConfigHelper::SPELL_CHECKING_ENABLED)
         ) {
             $originalUserInput = $args['query'] ?? '';
             $newSearchQuery = $this->useSpellchecking($originalUserInput ?: $searchQuery);
-            if($newSearchQuery){
+            if ($newSearchQuery) {
                 $newArgs = $args;
                 $newArgs['search'] = $newSearchQuery;
                 $newQuery = $this->prepareQuery($newArgs, $queryFields);
@@ -253,7 +253,7 @@ class Products extends AbstractResolver
                 $this->searchHelper->updateSearchQueryNumResults($magentoSearchQuery);
             }
         }
-        if(isset($context->correctedQuery)){
+        if (isset($context->correctedQuery)) {
             $result['corrected_query'] = $context->correctedQuery;
         }
 
@@ -287,10 +287,10 @@ class Products extends AbstractResolver
 
         $query = $searchEngineClient->getQuery();
         $this->handleFilters($query, $args);
-        if(!$skipSort){
+        if (!$skipSort) {
             $this->handleSort($query, $args);
         }
-        if(!$skipFacets){
+        if (!$skipFacets) {
             $this->handleFacets($query, $args);
         }
 
@@ -472,37 +472,35 @@ class Products extends AbstractResolver
         $responses = [];
         $bestText = null;
         $bestTextCount = 0;
-        foreach ($alternativeSerchTexts as $serchText){
+        foreach ($alternativeSerchTexts as $serchText) {
             $testQuery = $this->prepareQuery(['search' => $serchText], [], true, true);
             $testResponse = $testQuery->getResponse();
-            if(
+            if (
                 (!$bestText && ($testResponse->getNumFound() > 0)) ||
                 $testResponse->getNumFound() > $bestTextCount
-            ){
+            ) {
                 $bestText = $serchText;
                 $bestTextCount = $testResponse->getNumFound();
             }
         }
-        if(!$bestText){
+        if (!$bestText) {
             $alternativeSearchTextsAdditionalTry = array_diff(
                 $this->searchHelper->getAlternativeSearchTexts($originalSearchQuery, $spellingCheckResponse, false),
                 $alternativeSerchTexts
             );
-            foreach ($alternativeSearchTextsAdditionalTry as $serchText){
+            foreach ($alternativeSearchTextsAdditionalTry as $serchText) {
                 $testQuery = $this->prepareQuery(['search' => $serchText], [], true, true);
                 $testResponse = $testQuery->getResponse();
-                if(
+                if (
                     (!$bestText && ($testResponse->getNumFound() > 0)) ||
                     $testResponse->getNumFound() > $bestTextCount
-                ){
+                ) {
                     $bestText = $serchText;
                     $bestTextCount = $testResponse->getNumFound();
                 }
             }
 
         }
-
-
 
 
         return $bestText;
@@ -637,16 +635,16 @@ class Products extends AbstractResolver
         $products = $this->getProducts($response->getDocumentsCollection());
         $data = [
             'total_count' => $response->getNumFound(),
-            'items_ids'   => $products['items_ids'],
-            'items'       => $products['items'],
-            'page_info'   => [
-                'page_size'    => count($response->getDocumentsCollection()),
+            'items_ids' => $products['items_ids'],
+            'items' => $products['items'],
+            'page_info' => [
+                'page_size' => count($response->getDocumentsCollection()),
                 'current_page' => $response->getCurrentPage(),
-                'total_pages'  => $response->getNumFound()
+                'total_pages' => $response->getNumFound()
             ],
-            'facets'      => $this->prepareFacets($response->getFacets()),
-            'stats'       => $this->prepareStats($response->getStats()),
-            'debug_info'  => $debugInfo,
+            'facets' => $this->prepareFacets($response->getFacets()),
+            'stats' => $this->prepareStats($response->getStats()),
+            'debug_info' => $debugInfo,
         ];
 
         return $data;
@@ -702,14 +700,14 @@ class Products extends AbstractResolver
                 if ($valueId) {
                     $preparedValues[] = [
                         'value_id' => $valueId,
-                        'count'    => $count
+                        'count' => $count
                     ];
                 }
             }
 
             if ($preparedValues) {
                 $preparedFacets[] = [
-                    'code'   => $field,
+                    'code' => $field,
                     'values' => $preparedValues
                 ];
             }
@@ -727,7 +725,7 @@ class Products extends AbstractResolver
         $preparedStats = [];
         foreach ($stats as $field => $value) {
             $preparedStats[] = [
-                'code'   => FieldHelper::createFieldByResponseField($field, null)->getName(),
+                'code' => FieldHelper::createFieldByResponseField($field, null)->getName(),
                 'values' => $value
             ];
         }
