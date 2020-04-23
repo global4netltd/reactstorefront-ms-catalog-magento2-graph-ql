@@ -3,6 +3,7 @@
 namespace G4NReact\MsCatalogMagento2GraphQl\Helper;
 
 use Exception;
+use G4NReact\MsCatalog\Spellcheck\SpellcheckResponseInterface;
 use Magento\Framework\App\Helper\AbstractHelper;
 use Magento\Framework\App\Helper\Context;
 use Magento\Framework\Stdlib\StringUtils as StdlibString;
@@ -176,5 +177,31 @@ class Search extends AbstractHelper
     public function isQueryTooShort($queryText, $minQueryLength)
     {
         return ($this->string->strlen($queryText) < $minQueryLength);
+    }
+
+    /**
+     * @param string $origText
+     * @param SpellcheckResponseInterface $spellcheckResponse
+     * @return string[]
+     */
+    public function getAlternativeSearchTexts(string $origText, SpellcheckResponseInterface $spellcheckResponse): array
+    {
+        $result = [];
+        foreach ($spellcheckResponse->getSpellCorrectSuggestions() as $suggestion) {
+            if ($suggestion->getOriginalFrequency() > 0) {
+                continue;
+            }
+            $origWord = $suggestion->getText();
+            foreach ($suggestion->getSortedAlternatives() as $alternative) {
+                $replaceWord = $alternative->getText();
+                $newValues = [str_replace($origWord, $replaceWord, $origText)];
+                foreach ($result as $value){
+                    $newValues[] = str_replace($origWord, $replaceWord, $value);
+                }
+
+                $result = array_unique(array_merge($result, $newValues));
+            }
+        }
+        return $result;
     }
 }

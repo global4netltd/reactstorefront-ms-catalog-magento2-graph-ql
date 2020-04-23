@@ -7,6 +7,7 @@ use Exception;
 use G4NReact\MsCatalog\Client\ClientFactory;
 use G4NReact\MsCatalog\Document;
 use G4NReact\MsCatalog\QueryInterface;
+use G4NReact\MsCatalog\ResponseInterface;
 use G4NReact\MsCatalogMagento2\Helper\Config as ConfigHelper;
 use G4NReact\MsCatalogMagento2\Helper\Facets as FacetsHelper;
 use G4NReact\MsCatalogMagento2\Helper\Query;
@@ -188,53 +189,56 @@ class Products extends AbstractResolver
         }
 
         $debug = isset($args['debug']) && $args['debug'];
-
-        $searchEngineConfig = $this->configHelper->getConfiguration();
-        $searchEngineClient = ClientFactory::create($searchEngineConfig);
-
-        $query = $searchEngineClient->getQuery();
-        $this->handleFilters($query, $args);
-        $this->handleSort($query, $args);
-        $this->handleFacets($query, $args);
-
         $this->resolveInfo = $info->getFieldSelection(3);
-
-        // venia outside of variables, he asks for __typename
         $limit = (isset($this->resolveInfo['items']) && isset($this->resolveInfo['items']['__typename'])) ? 2 : 1;
-        if ((isset($this->resolveInfo['items']) && count($this->resolveInfo['items']) <= $limit && isset($this->resolveInfo['items']['sku']))
-            || (isset($this->resolveInfo['items_ids']))
-        ) {
-            $maxPageSize = 50000;
+        $onlySku = (isset($this->resolveInfo['items']) && count($this->resolveInfo['items']) <= $limit && isset($this->resolveInfo['items']['sku']))
+            || (isset($this->resolveInfo['items_ids']));
 
-            $query->addFieldsToSelect([
-                $this->queryHelper->getFieldByAttributeCode('sku'),
-            ]);
-        } else {
-            $this->handleFieldsToSelect($query, $info);
-            $maxPageSize = 100; // @todo this should depend on maximum page size in listing
+        $queryFields = [];
+        if(!$onlySku){
+            $queryFields = $info->getFieldSelection(3)['items'] ?? [];
         }
 
-        $pageSize = (isset($args['pageSize']) && ($args['pageSize'] < $maxPageSize)) ? $args['pageSize'] : $maxPageSize;
-        $query->setPageSize($pageSize);
-
-        if (isset($args['search']) && $args['search']) {
+        $searchQuery = $args['search'] ?? '';
+        if ($searchQuery) {
             $this->resolveInfo['total_count'] = true;
-            $searchText = Parser::parseSearchText($args['search']);
-            $query->setQueryText($searchText);
-            $query->setQueryPrepend($this->configHelper->getConfigByPath('ms_catalog_indexer/search_settings/search_query_boost') . $query->getQueryPrepend());
         }
+
+        $query = $this->prepareQuery($args, $queryFields);
 
         $this->eventManager->dispatch(
             'prepare_msproduct_resolver_response_before',
             ['query' => $query, 'resolve_info' => $info, 'args' => $args]
         );
         $response = $query->getResponse();
+
+        if(
+            $searchQuery &&
+            $response->getNumFound() === 0 &&
+            $this->configHelper->getConfigByPath(ConfigHelper::SPELL_CHECKING_ENABLED)
+        ) {
+            $newSearchQuery = $this->useSpellchecking($searchQuery);
+            if($newSearchQuery){
+                $newArgs = $args;
+                $newArgs['search'] = $newSearchQuery;
+                $newQuery = $this->prepareQuery($newArgs, $queryFields);
+                $this->eventManager->dispatch(
+                    'prepare_msproduct_resolver_response_before',
+                    ['query' => $newQuery, 'resolve_info' => $info, 'args' => $newArgs]
+                );
+                $response = $newQuery->getResponse();
+                $context->correctedQuery = $newSearchQuery;
+            }
+
+        }
+        
         $this->eventManager->dispatch(
             'prepare_msproduct_resolver_response_after',
             ['response' => $response]
         );
 
         $result = $this->prepareResultData($response, $debug);
+
 
         if (isset($args['search'])
             && $args['search']
@@ -248,6 +252,10 @@ class Products extends AbstractResolver
                 $this->searchHelper->updateSearchQueryNumResults($magentoSearchQuery);
             }
         }
+        if(isset($context->correctedQuery)){
+            $result['corrected_query'] = $context->correctedQuery;
+        }
+
 
         $resultObject = new DataObject(['result' => $result]);
         $this->eventManager->dispatch(
@@ -262,6 +270,53 @@ class Products extends AbstractResolver
 
         return $result;
     }
+
+    /**
+     * @param array $args
+     * @param array $queryFields
+     * @param bool $skipSort
+     * @param bool $skipFacets
+     * @return QueryInterface
+     * @throws LocalizedException
+     * @throws NoSuchEntityException
+     */
+    public function prepareQuery(array $args, array $queryFields, bool $skipSort = false, bool $skipFacets = false): QueryInterface
+    {
+        $searchEngineClient = $this->getSearchEngineClient();
+
+        $query = $searchEngineClient->getQuery();
+        $this->handleFilters($query, $args);
+        if(!$skipSort){
+            $this->handleSort($query, $args);
+        }
+        if(!$skipFacets){
+            $this->handleFacets($query, $args);
+        }
+
+
+        if (!$queryFields) {
+            $maxPageSize = 50000;
+            $query->addFieldsToSelect([
+                $this->queryHelper->getFieldByAttributeCode('sku'),
+            ]);
+        } else {
+            $this->handleFieldsToSelect($query, $queryFields);
+            $maxPageSize = 100; // @todo this should depend on maximum page size in listing
+        }
+
+        $pageSize = (isset($args['pageSize']) && ($args['pageSize'] < $maxPageSize)) ? $args['pageSize'] : $maxPageSize;
+        $query->setPageSize($pageSize);
+
+        $searchQuery = $args['search'] ?? '';
+        if ($searchQuery) {
+            $searchText = Parser::parseSearchText($searchQuery);
+            $query->setQueryText($searchText);
+            $query->setQueryPrepend($this->configHelper->getConfigByPath(ConfigHelper::SEARCH_QUERY_BOOST) . $query->getQueryPrepend());
+        }
+
+        return $query;
+    }
+
 
     /**
      * @param QueryInterface $query
@@ -403,6 +458,35 @@ class Products extends AbstractResolver
     }
 
     /**
+     * @param string $originalSearchQuery
+     * @return string|null
+     * @throws LocalizedException
+     * @throws NoSuchEntityException
+     */
+    public function useSpellchecking(string $originalSearchQuery): ?string
+    {
+        $spellingCheckResponse = $this->getSearchEngineClient()->checkSpelling($originalSearchQuery);
+        $alternativeSerchTexts = $this->searchHelper->getAlternativeSearchTexts($originalSearchQuery, $spellingCheckResponse);
+
+        $responses = [];
+        $bestText = null;
+        $bestTextCount = 0;
+        foreach ($alternativeSerchTexts as $serchText){
+            $testQuery = $this->prepareQuery(['search' => $serchText], [], true, true);
+            $testResponse = $testQuery->getResponse();
+            if(
+                (!$bestText && ($testResponse->getNumFound() > 0)) ||
+                $testResponse->getNumFound() > $bestTextCount
+            ){
+                $bestText = $serchText;
+                $bestTextCount = $testResponse->getNumFound();
+            }
+        }
+
+        return $bestText;
+    }
+
+    /**
      * @param QueryInterface $query
      * @param $args
      * @throws LocalizedException
@@ -481,15 +565,15 @@ class Products extends AbstractResolver
 
     /**
      * @param QueryInterface $query
-     * @param $info
+     * @param array $queryFields
      * @throws LocalizedException
      */
-    public function handleFieldsToSelect($query, $info)
+    public function handleFieldsToSelect($query, $queryFields)
     {
-        $queryFields = $this->parseQueryFields($info);
+        $fields = $this->parseQueryFields($queryFields);
 
         $fieldsToSelect = [];
-        foreach ($queryFields as $attributeCode => $value) {
+        foreach ($fields as $attributeCode => $value) {
             $fieldsToSelect[] = $this->queryHelper->getFieldByAttributeCode($attributeCode);
         }
 
@@ -497,12 +581,11 @@ class Products extends AbstractResolver
     }
 
     /**
-     * @param ResolveInfo $info
+     * @param array $queryFields
      * @return array
      */
-    public function parseQueryFields(ResolveInfo $info)
+    public function parseQueryFields(array $queryFields)
     {
-        $queryFields = $info->getFieldSelection(3)['items'] ?? [];
         foreach ($queryFields as $name => $value) {
             if (is_array($value)) {
                 unset($queryFields[$name]);

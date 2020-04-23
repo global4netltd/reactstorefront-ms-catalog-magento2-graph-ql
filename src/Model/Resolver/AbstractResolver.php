@@ -2,9 +2,12 @@
 
 namespace G4NReact\MsCatalogMagento2GraphQl\Model\Resolver;
 
+use G4NReact\MsCatalog\Client\ClientInterface;
 use G4NReact\MsCatalog\Document;
 use G4NReact\MsCatalogMagento2\Helper\Query;
 use G4NReact\MsCatalogMagento2\Helper\Config as ConfigHelper;
+use G4NReact\MsCatalog\Client\ClientFactory;
+use G4NReact\MsCatalog\ConfigInterface;
 use Magento\Framework\App\CacheInterface;
 use Magento\Framework\App\DeploymentConfig;
 use Magento\Framework\DataObject;
@@ -65,6 +68,11 @@ abstract class AbstractResolver implements ResolverInterface
     protected $eventManager;
 
     /**
+     * @var ClientInterface
+     */
+    protected $client;
+
+    /**
      * AbstractResolver constructor.
      *
      * @param CacheInterface $cache
@@ -111,6 +119,21 @@ abstract class AbstractResolver implements ResolverInterface
         array $value = null,
         array $args = null
     );
+
+
+    /**
+     * @return ClientInterface
+     * @throws \Magento\Framework\Exception\NoSuchEntityException
+     */
+    public function getSearchEngineClient(): ClientInterface
+    {
+        if(!$this->client){
+            $searchEngineConfig = $this->configHelper->getConfiguration();
+            $this->client =  ClientFactory::create($searchEngineConfig);
+        }
+        
+        return $this->client;
+    }
 
     /**
      * @param Document $documentData
