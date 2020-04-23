@@ -90,6 +90,7 @@ type MsProducts @doc(description: "The Products object is the top-level object r
     total_count: Int @doc(description: "The number of products returned")
     facets: [MsProductFacets] @doc(description: "The array of filters with the number of occurrences that match the specified search criteria")
     stats: [MsProductStats] @doc(description: "The array of range filters with the number of occurrences that match the specified search criteria")
+    corrected_query: String @doc(description: "corrected query text based on spellcheck")
     debug_info: DebugInfo
 }
 
