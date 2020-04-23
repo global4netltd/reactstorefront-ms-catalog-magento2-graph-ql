@@ -218,7 +218,7 @@ class Products extends AbstractResolver
             $this->configHelper->getConfigByPath(ConfigHelper::SPELL_CHECKING_ENABLED)
         ) {
             $originalUserInput = $args['query'] ?? '';
-            $newSearchQuery = $this->useSpellchecking($originalUserInput ?? $searchQuery);
+            $newSearchQuery = $this->useSpellchecking($originalUserInput ?: $searchQuery);
             if($newSearchQuery){
                 $newArgs = $args;
                 $newArgs['search'] = $newSearchQuery;
