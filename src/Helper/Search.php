@@ -179,16 +179,21 @@ class Search extends AbstractHelper
         return ($this->string->strlen($queryText) < $minQueryLength);
     }
 
+
     /**
      * @param string $origText
      * @param SpellcheckResponseInterface $spellcheckResponse
-     * @return string[]
+     * @param bool $skipIfOriginalExists
+     * @return array
      */
-    public function getAlternativeSearchTexts(string $origText, SpellcheckResponseInterface $spellcheckResponse): array
-    {
+    public function getAlternativeSearchTexts(
+        string $origText,
+        SpellcheckResponseInterface $spellcheckResponse,
+        bool $skipIfOriginalExists = true
+    ): array {
         $result = [];
         foreach ($spellcheckResponse->getSpellCorrectSuggestions() as $suggestion) {
-            if ($suggestion->getOriginalFrequency() > 0) {
+            if ($suggestion->getOriginalFrequency() > 0 && $skipIfOriginalExists) {
                 continue;
             }
             $origWord = $suggestion->getText();

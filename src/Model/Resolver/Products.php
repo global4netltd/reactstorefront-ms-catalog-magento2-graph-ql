@@ -217,7 +217,8 @@ class Products extends AbstractResolver
             $response->getNumFound() === 0 &&
             $this->configHelper->getConfigByPath(ConfigHelper::SPELL_CHECKING_ENABLED)
         ) {
-            $newSearchQuery = $this->useSpellchecking($searchQuery);
+            $originalUserInput = $args['query'] ?? '';
+            $newSearchQuery = $this->useSpellchecking($originalUserInput ?? $searchQuery);
             if($newSearchQuery){
                 $newArgs = $args;
                 $newArgs['search'] = $newSearchQuery;
@@ -231,7 +232,7 @@ class Products extends AbstractResolver
             }
 
         }
-        
+
         $this->eventManager->dispatch(
             'prepare_msproduct_resolver_response_after',
             ['response' => $response]
@@ -482,6 +483,27 @@ class Products extends AbstractResolver
                 $bestTextCount = $testResponse->getNumFound();
             }
         }
+        if(!$bestText){
+            $alternativeSearchTextsAdditionalTry = array_diff(
+                $this->searchHelper->getAlternativeSearchTexts($originalSearchQuery, $spellingCheckResponse, false),
+                $alternativeSerchTexts
+            );
+            foreach ($alternativeSearchTextsAdditionalTry as $serchText){
+                $testQuery = $this->prepareQuery(['search' => $serchText], [], true, true);
+                $testResponse = $testQuery->getResponse();
+                if(
+                    (!$bestText && ($testResponse->getNumFound() > 0)) ||
+                    $testResponse->getNumFound() > $bestTextCount
+                ){
+                    $bestText = $serchText;
+                    $bestTextCount = $testResponse->getNumFound();
+                }
+            }
+
+        }
+
+
+
 
         return $bestText;
     }
