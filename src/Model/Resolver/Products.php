@@ -110,7 +110,7 @@ class Products extends AbstractResolver
         $this->facetsHelper = $facetsHelper;
         $this->searchHelper = $searchHelper;
 
-        return parent::__construct(
+        parent::__construct(
             $cache,
             $deploymentConfig,
             $storeManager,
@@ -242,7 +242,12 @@ class Products extends AbstractResolver
             }
         }
 
-        $resultObject = new DataObject(['result' => $result]);
+        $resultObject = new DataObject([
+            'result' => $result,
+            'field'  => $field,
+            'value'  => $value,
+            'args'   => $args
+        ]);
         $this->eventManager->dispatch(
             self::PRODUCT_OBJECT_TYPE . '_resolver_result_return_before',
             ['result' => $resultObject]
