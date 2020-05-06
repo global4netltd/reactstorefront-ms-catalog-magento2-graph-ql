@@ -97,7 +97,10 @@ class Search extends AbstractResolver
         $isAutosuggest = (isset($args['autosuggest']) && $args['autosuggest']) ? true : false;
 
         $searchObject = new DataObject();
+        $originalSearchText = $searchText;
         $searchObject->setText($searchText);
+        /** To be able to get original input in case when one observer change it*/
+        $searchObject->setOriginalText($originalSearchText);
         $this->eventManager->dispatch(
             'prepare_mssearch_search_text_before', ['search_object' => $searchObject]
         );
@@ -130,7 +133,12 @@ class Search extends AbstractResolver
             $dataObject = new DataObject(['args' => $argsForMsProducts, 'return' => []]);
             $this->eventManager->dispatch(
                 'prepare_mssearch_resolver_args_after',
-                ['search_text' => $searchText, 'args' => $dataObject, 'search_term' => $searchTermDocument]
+                [
+                    'search_text' => $searchText,
+                    'original_search_text' => $originalSearchText,
+                    'args' => $dataObject,
+                    'search_term' => $searchTermDocument
+                ]
             );
             $argsToSet = array_merge($args, $dataObject->getData('args'));
             $return = $dataObject->getData('return');
