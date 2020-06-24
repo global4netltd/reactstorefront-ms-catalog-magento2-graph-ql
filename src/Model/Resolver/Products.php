@@ -155,6 +155,12 @@ class Products extends AbstractResolver
             $args = $args ?: [];
             if ($argsFromContext['overwrite_args'] ?? false) {
                 $args = array_merge($args, $context->args);
+            } elseif ($argsFromContext['merge_args'] ?? false) {
+                $oldArgs = $args;
+                $args = array_merge($args, $context->args);
+                if (isset($args['filter']['attributes'])) {
+                    $args['filter']['attributes'] = array_merge($args['filter']['attributes'], $oldArgs['filter']['attributes']);
+                }
             } else {
                 $args = array_merge($context->args, $args);
             }
@@ -346,7 +352,7 @@ class Products extends AbstractResolver
 
         $this->addOutOfStockFilterProducts($query);
 
-        if (isset($args['filter']) && is_array($args['filter']) && ($filters = $this->prepareFiltersByArgsFilter($args['filter']))) {
+        if (isset($args['filter']) && is_array($args['filter']) && ($filters = $this->prepareFiltersByArgsFilter($args['filter'], $args['remove_tag_excluded'] ?? []))) {
             $query->addFilters($filters);
         }
 
@@ -408,15 +414,15 @@ class Products extends AbstractResolver
     /**
      * @param array $filters
      *
+     * @param array $removeTagExcluded
      * @return array
-     * @throws LocalizedException
      */
-    public function prepareFiltersByArgsFilter(array $filters)
+    public function prepareFiltersByArgsFilter(array $filters, array $removeTagExcluded = [])
     {
         $preparedFilters = [];
         foreach ($filters as $key => $filter) {
             if ($key === 'attributes') {
-                $preparedFilters = array_merge($preparedFilters, $this->prepareAttributes($filter));
+                $preparedFilters = array_merge($preparedFilters, $this->prepareAttributes($filter, $removeTagExcluded));
             } else {
                 $field = $this->queryHelper->getFieldByProductAttributeCode($key, $filter);
                 $preparedFilters[] = [$field];
@@ -428,10 +434,10 @@ class Products extends AbstractResolver
 
     /**
      * @param $attributes
+     * @param array $removeTagExcluded
      * @return array
-     * @throws LocalizedException
      */
-    public function prepareAttributes($attributes)
+    public function prepareAttributes($attributes, $removeTagExcluded = [])
     {
         $preparedFilters = [];
 
@@ -450,7 +456,9 @@ class Products extends AbstractResolver
                 $filterData[0],
                 $this->prepareFilterValue($fieldValue)
             )) {
-                $field->setExcluded(true);
+                if (!in_array($filterData[0], $removeTagExcluded)) {
+                    $field->setExcluded(true);
+                }
                 $preparedFilters[] = [$field];
             }
         }
