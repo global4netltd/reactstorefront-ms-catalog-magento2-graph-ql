@@ -237,16 +237,15 @@ class Categories extends AbstractResolver
             foreach ($categoryResult->getDocumentsCollection() as $category) {
                 $solrCategory = $this->prepareDocumentResult($category, $queryFields, 'mscategory');
                 if ($levels) {
-                    $maxLevels = max($levels);
+                    if (isset($categories[$solrCategory['id']])) {
+                        $categories[$solrCategory['id']] = array_merge($solrCategory, $categories[$solrCategory['id']]);
+                    } else {
+                        $categories[$solrCategory['id']] = $solrCategory;
+                    }
+
                     if (isset($solrCategory['parent_id']) && ($solrCategory['parent_id'] > 2)) {
                         $categories = $this->categoriesHelper
                             ->addChildToCategories($categories, $solrCategory['parent_id'], $solrCategory, max($levels));
-                    } else {
-                        if (isset($categories[$solrCategory['id']])) {
-                            $categories[$solrCategory['id']] = array_merge($solrCategory, $categories[$solrCategory['id']]);
-                        } else {
-                            $categories[$solrCategory['id']] = $solrCategory;
-                        }
                     }
                 } elseif ($children) {
                     if (isset($solrCategory['parent_id'])) {
