@@ -28,8 +28,8 @@ type Query {
         id: Int @doc(description: "Id of the CMS page")
     ): MsCmsPage @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\CmsPage") @doc(description: "The CMS page query returns information about a CMS page")
     msCmsBlock (
-        id: Int @doc(description: "Id of the CMS Block")
-    ): MsCmsBlock @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\CmsBlock") @doc(description: "The CMS block query returns information about a CMS block")
+        identifiers: [String] @doc(description: "Identifiers of the CMS blocks")
+    ): MsCmsBlocks @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\CmsBlock") @doc(description: "The CMS block query returns information about a CMS block")
 }
 
 input MsProductFilterInput @doc(description: "ProductFilterInput defines the filters to be used in the search. A filter contains at least one attribute, a comparison operator, and the value that is being searched for.") {
@@ -52,10 +52,10 @@ input MsProductSortInput  @doc(description: "ProductSortInput specifies the attr
 }
 
 enum IdTypeEnum @doc(description: "This enumeration indicates whether to return results as id, sku")
-{
-    ID
-    SKU
-}
+    {
+        ID
+        SKU
+    }
 
 type MsProductData @doc(description: "The ProductInterface contains attributes that are common to all types of products. Note that descriptions may not be available for custom and EAV attributes.") {
     id: Int @doc(description: "The ID number")
@@ -90,6 +90,7 @@ type MsProducts @doc(description: "The Products object is the top-level object r
     total_count: Int @doc(description: "The number of products returned")
     facets: [MsProductFacets] @doc(description: "The array of filters with the number of occurrences that match the specified search criteria")
     stats: [MsProductStats] @doc(description: "The array of range filters with the number of occurrences that match the specified search criteria")
+    corrected_query: String @doc(description: "corrected query text based on spellcheck")
     debug_info: DebugInfo
 }
 
@@ -210,13 +211,16 @@ type MsCmsPage @doc(description: "CMS page defines all CMS page information") {
     meta_keywords: String @doc(description: "CMS page meta keywords")
 }
 
+type MsCmsBlocks @doc(description: "CMS blocks information") {
+    items: [MsCmsBlock] @doc(description: "An array of CMS blocks")
+}
+
 type MsCmsBlock @doc(description: "Cms Block defines all CMS Block information") {
     id: Int @doc(description: "An ID that uniquely identifies the cms block")
     title: String @doc(description: "CMS block title")
     identifier: String @doc(description: "CMS block identifier")
     content: String @doc(description: "CMS block content")
     is_active: Boolean @doc(description: "Is CMS block enabled")
-    front_title: String @doc(description: "The front title of CMS block")
 }
 
 type DebugInfo {

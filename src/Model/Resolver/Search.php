@@ -8,6 +8,7 @@ use G4NReact\MsCatalog\Client\ClientFactory;
 use G4NReact\MsCatalog\Document;
 use G4NReact\MsCatalogMagento2\Helper\Config as ConfigHelper;
 use G4NReact\MsCatalogMagento2\Helper\Query;
+use G4NReact\MsCatalogMagento2GraphQl\Helper\Parser;
 use G4NReact\MsCatalogMagento2GraphQl\Helper\Search as SearchHelper;
 use Magento\Framework\App\CacheInterface;
 use Magento\Framework\App\DeploymentConfig;
@@ -22,6 +23,7 @@ use Magento\Framework\GraphQl\Query\Resolver\Value;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Store\Model\StoreManagerInterface;
+use Magento\Search\Model\Query as SearchQuery;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -86,43 +88,76 @@ class Search extends AbstractResolver
             );
         }
 
-        $searchText = $args['query'] ?? '';
+        $searchText = isset($args['query']) ? Parser::parseSearchText($args['query']) : '';
+        if (!$searchText) {
+            return [];
+        }
+
+        $magentoSearchQuery = null;
         $isAutosuggest = (isset($args['autosuggest']) && $args['autosuggest']) ? true : false;
 
+        $searchObject = new DataObject();
+        $originalSearchText = $searchText;
+        $searchObject->setText($searchText);
+        /** To be able to get original input in case when one observer change it*/
+        $searchObject->setOriginalText($originalSearchText);
+        $this->eventManager->dispatch(
+            'prepare_mssearch_search_text_before', ['search_object' => $searchObject]
+        );
+        $searchText = $searchObject->getText();
+
         // get search term from solr
-        $searchTerm = $this->getSearchTermFromSearchEngine($searchText);
+        $searchTermDocument = $this->getSearchTermFromSearchEngine($searchText);
 
         // @ToDo: handle synonyms, somehow...
 
         // update search term in magento
-        // @ToDo - create new if not exist or update search count in magento by id if not autosuggestion
         if (!$isAutosuggest) {
-            $this->updateMagentoSearchTerm($searchTerm);
+            $magentoSearchQuery = $this->updateMagentoSearchTerm($searchText, $searchTermDocument);
         }
 
         // if redirect -> set redirect info
-        if ($canonicalUrl = $searchTerm->getFieldValue('redirect')) {
-            return [
+        if (!$isAutosuggest && $canonicalUrl = $this->sanitizeCanonicalUrl($searchTermDocument->getFieldValue('redirect'))) {
+            $return = [
                 'redirect' => [
                     'type'          => 'REDIRECT',
                     'id'            => 301,
                     'canonical_url' => $canonicalUrl,
                 ]
             ];
+            $argsToSet = array_merge($args, ['redirect' => true]);
+        } else {
+            // else -> set search in args and msProducts will do the rest
+            $finalSearchText = $searchTermDocument->getFieldValue('query_text') ?: $searchText;
+            $argsForMsProducts = ['search' => $finalSearchText];
+            $dataObject = new DataObject(['args' => $argsForMsProducts, 'return' => []]);
+            $this->eventManager->dispatch(
+                'prepare_mssearch_resolver_args_after',
+                [
+                    'search_text' => $searchText,
+                    'original_search_text' => $originalSearchText,
+                    'args' => $dataObject,
+                    'search_term' => $searchTermDocument
+                ]
+            );
+            $argsToSet = array_merge($args, $dataObject->getData('args'));
+            $return = $dataObject->getData('return');
         }
 
-        // else -> set search in args and msProducts will do the rest
-        $finalSearchText = $searchTerm->getFieldValue('query_text') ?: $searchText;
-        $argsForMsProducts = ['search' => $finalSearchText];
-        $dataObject = new DataObject(['args' => $argsForMsProducts]);
-        $this->eventManager->dispatch(
-            'prepare_mssearch_resolver_args_after',
-            ['search_text' => $searchText, 'args' => $dataObject, 'search_term' => $searchTerm]
-        );
+        $context->args = $argsToSet;
+        $context->magentoSearchQuery = $magentoSearchQuery;
 
-        $context->args = array_merge($args, $dataObject->getData('args'));
+        return $return ?: [];
+    }
 
-        return [];
+    /**
+     * @param string $searchText
+     * @return string
+     * @deprecated
+     */
+    public function parseSearchText(string $searchText): string
+    {
+        return mb_strtolower(strip_tags(stripslashes($searchText)));
     }
 
     /**
@@ -150,6 +185,7 @@ class Search extends AbstractResolver
             )],
             [new Document\Field('query_text', $searchText, Document\Field::FIELD_TYPE_STRING, true, false)],
         ]);
+
         $response = $getSearchTermQuery->getResponse();
         /** @var Document $searchTerm */
         $searchTerm = $response->getFirstItem();
@@ -158,11 +194,13 @@ class Search extends AbstractResolver
     }
 
     /**
+     * @param string $searchText
      * @param Document $searchTerm
+     * @return null|SearchQuery
      */
-    protected function updateMagentoSearchTerm(Document $searchTerm)
+    protected function updateMagentoSearchTerm(string $searchText, Document $searchTerm)
     {
-        $searchText = $searchTerm->getFieldValue('query_text') ?: '';
+        $searchText = $searchTerm->getFieldValue('query_text') ?: $searchText;
 
         if (!$searchText) {
             return;
@@ -171,6 +209,24 @@ class Search extends AbstractResolver
         $magentoSearchQuery = $this->searchHelper->getMagentoSearchQuery((string)$searchText);
         if ($magentoSearchQuery) {
             $this->searchHelper->executeMagentoSearchQuery($magentoSearchQuery);
+        }
+
+        return $magentoSearchQuery ?: null;
+    }
+
+    /**
+     * @param string|null $url
+     * @return string|null
+     */
+    protected function sanitizeCanonicalUrl(?string $url): ?string
+    {
+        if (!$url) {
+            return null;
+        }
+        if (preg_match('#^https?://#i', $url) === 1) {
+            return $url;
+        } else {
+            return '/' . ltrim((string)$url, '/');
         }
     }
 }
