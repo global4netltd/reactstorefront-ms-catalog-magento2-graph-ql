@@ -1,7 +1,7 @@
 {
   "name": "g4n-react/ms-catalog-magento2-graph-ql",
   "description": "GraphQl for product Magento 2",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "license": ["MIT"],
   "keywords": ["Magento2"],
   "authors": [
