@@ -110,6 +110,9 @@ class Categories extends AbstractResolver
 
             $resultObject = new DataObject(['result' => $result]);
             $this->eventManager->dispatch(self::CATEGORY_OBJECT_TYPE . '_resolver_result_return_before', ['result' => $resultObject]);
+            
+            $context->msCategoriesArgs = $args;
+            $context->msCategories = $result;
 
             return $resultObject->getData('result');
         }
