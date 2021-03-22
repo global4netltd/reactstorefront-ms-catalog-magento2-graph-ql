@@ -223,7 +223,7 @@ class Products extends AbstractResolver
             && $response->getNumFound() === 0
             && $this->configHelper->getConfigByPath(ConfigHelper::SPELL_CHECKING_ENABLED)
         ) {
-            $originalUserInput = $args['query'] ?? '';
+            $originalUserInput = mb_strtolower($args['query'] ?? '');
             $newSearchQuery = $this->useSpellchecking($originalUserInput ?: $searchQuery);
             if ($newSearchQuery) {
                 $newArgs = $args;
