@@ -82,6 +82,7 @@ class Search extends AbstractResolver
         array $value = null,
         array $args = null
     ) {
+        // test
         if (!isset($args['query'])) {
             throw new GraphQlInputException(
                 __("'query' input argument is required.")
