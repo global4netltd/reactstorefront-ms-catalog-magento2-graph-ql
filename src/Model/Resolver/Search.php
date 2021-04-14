@@ -132,7 +132,7 @@ class Search extends AbstractResolver
             $finalSearchText = $searchTermDocument->getFieldValue('query_text') ?: $searchText;
             $argsForMsProducts = ['search' => $finalSearchText];
             $dataObject = new DataObject(['args' => $argsForMsProducts, 'return' => []]);
-            $this->setCategoryFilters($categoryId,$searchTermDocument);
+            $this->setCategoryFilters($categoryId, $searchTermDocument);
             $this->eventManager->dispatch(
                 'prepare_mssearch_resolver_args_after',
                 [
