@@ -159,7 +159,7 @@ class Products extends AbstractResolver
                 $oldArgs = $args;
                 $args = array_merge($args, $context->args);
                 if (isset($args['filter']['attributes'])) {
-                    $args['filter']['attributes'] = array_merge($args['filter']['attributes'], $oldArgs['filter']['attributes']);
+                    $args['filter']['attributes'] = array_merge($args['filter']['attributes'], $oldArgs['filter']['attributes'] ?? []);
                 }
             } else {
                 $args = array_merge($context->args, $args);

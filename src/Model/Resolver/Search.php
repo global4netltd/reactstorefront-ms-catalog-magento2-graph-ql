@@ -82,7 +82,6 @@ class Search extends AbstractResolver
         array $value = null,
         array $args = null
     ) {
-        // test
         if (!isset($args['query'])) {
             throw new GraphQlInputException(
                 __("'query' input argument is required.")
@@ -96,6 +95,7 @@ class Search extends AbstractResolver
 
         $magentoSearchQuery = null;
         $isAutosuggest = (isset($args['autosuggest']) && $args['autosuggest']) ? true : false;
+        $categoryId = $args['categoryId'] ?? null;
 
         $searchObject = new DataObject();
         $originalSearchText = $searchText;
@@ -132,6 +132,7 @@ class Search extends AbstractResolver
             $finalSearchText = $searchTermDocument->getFieldValue('query_text') ?: $searchText;
             $argsForMsProducts = ['search' => $finalSearchText];
             $dataObject = new DataObject(['args' => $argsForMsProducts, 'return' => []]);
+            $this->setCategoryFilters($categoryId,$searchTermDocument);
             $this->eventManager->dispatch(
                 'prepare_mssearch_resolver_args_after',
                 [
@@ -213,6 +214,25 @@ class Search extends AbstractResolver
         }
 
         return $magentoSearchQuery ?: null;
+    }
+
+    /**
+     * @param int|null $categoryId
+     * @param Document $searchTermDocument
+     */
+    protected function setCategoryFilters(?int $categoryId, Document &$searchTermDocument)
+    {
+        if ($categoryId) {
+            $searchTermDocument->setData('category_filters',
+                new Document\Field(
+                    'category_id',
+                    json_encode([['category_id' => $categoryId]]),
+                    Document\Field::FIELD_TYPE_STRING,
+                    true,
+                    false
+                )
+            );
+        }
     }
 
     /**

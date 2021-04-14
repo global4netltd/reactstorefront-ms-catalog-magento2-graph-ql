@@ -20,6 +20,7 @@ type Query {
     msSearch (
         query: String! @doc(description: "Search text")
         autosuggest: Boolean! @doc(description: "")
+        categoryId: Int @doc(description: "Filter by category ID")
     ): MsSearch @resolver(class: "G4NReact\\MsCatalogMagento2GraphQl\\Model\\Resolver\\Search")
     attributes (
         attributeCodes: [String] @doc(description: "List of attribute codes")
