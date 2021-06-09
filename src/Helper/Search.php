@@ -204,7 +204,7 @@ class Search extends AbstractHelper
                     $newValues[] = str_replace($origWord, $replaceWord, $value);
                 }
 
-                $result = array_unique(array_merge($result, $newValues));
+                $result = array_slice(array_unique(array_merge($result, $newValues)), 0, 50);
             }
         }
         return $result;
