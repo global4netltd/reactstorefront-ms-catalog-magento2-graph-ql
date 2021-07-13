@@ -155,11 +155,17 @@ class Products extends AbstractResolver
             $args = $args ?: [];
             if ($argsFromContext['overwrite_args'] ?? false) {
                 $args = array_merge($args, $context->args);
+                if (isset($context->args['context_attributes'])) {
+                    $args['filter']['attributes'] = array_merge($args['filter']['attributes'], $context->args['context_attributes']);
+                }
             } elseif ($argsFromContext['merge_args'] ?? false) {
                 $oldArgs = $args;
                 $args = array_merge($args, $context->args);
                 if (isset($args['filter']['attributes'])) {
                     $args['filter']['attributes'] = array_merge($args['filter']['attributes'], $oldArgs['filter']['attributes'] ?? []);
+                }
+                if (isset($args['context_attributes'])) {
+                    $args['filter']['attributes'] = array_merge($args['filter']['attributes'], $args['context_attributes']);
                 }
             } else {
                 $args = array_merge($context->args, $args);
