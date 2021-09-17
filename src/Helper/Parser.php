@@ -162,7 +162,7 @@ class Parser
                 // multiple words
 
                 $stringLength = strlen($string);
-                if ($string{0} == '"' && $string{$stringLength - 1} == '"') {
+                if ($string[0] == '"' && $string[$stringLength - 1] == '"') {
                     // phrase
                     $string = trim($string, '"');
                     $string = self::escapePhrase($string);
