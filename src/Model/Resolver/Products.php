@@ -273,7 +273,7 @@ class Products extends AbstractResolver
         $resultObject = new DataObject(['result' => $result]);
         $this->eventManager->dispatch(
             self::PRODUCT_OBJECT_TYPE . '_resolver_result_return_before',
-            ['result' => $resultObject, 'query' => $query]
+            ['result' => $resultObject, 'query' => $query, 'args' => $args]
         );
         $result = $resultObject->getData('result');
 
